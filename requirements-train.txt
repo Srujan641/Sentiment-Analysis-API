@@ -1,0 +1,9 @@
+# Training, sweeps and drift reports (Colab / workstation, not the serving image)
+-r requirements.txt
+datasets>=3.0
+accelerate>=0.34
+scikit-learn>=1.5
+pandas>=2.2
+wandb>=0.18
+evidently>=0.7
+pyyaml>=6.0

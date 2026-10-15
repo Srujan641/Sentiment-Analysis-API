@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.egg-info/
+
+# model weights and run outputs are artefacts, not source
+models/*
+!models/.gitkeep
+runs/
+wandb/
+data/*
+!data/.gitkeep
+reports/*
+!reports/.gitkeep
+.DS_Store

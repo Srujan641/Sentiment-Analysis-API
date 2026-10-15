@@ -1,0 +1,36 @@
+[project]
+name = "sentiment-analysis-api"
+version = "1.0.0"
+description = "Fine-tuned DistilBERT sentiment classifier served with FastAPI"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+[tool.black]
+line-length = 110
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 110
+known_first_party = ["app", "scripts", "tests"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "UP", "BLE"]
+ignore = ["B008"]  # FastAPI's Depends() in defaults is idiomatic
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source = ["app"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_lines = ["pragma: no cover", "if __name__ == .__main__.:"]

@@ -1,0 +1,12 @@
+# Serving runtime. Install CPU-only torch first for a much smaller footprint:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch>=2.3
+transformers>=4.46
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7
+pydantic-settings>=2.7
+slowapi>=0.1.9
+limits>=3.13
+prometheus-client>=0.20
+numpy>=1.26

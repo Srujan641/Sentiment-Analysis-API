@@ -1,0 +1,43 @@
+{
+  "test_metrics": {
+    "accuracy": 0.9497,
+    "f1_macro": 0.9496968605810688,
+    "roc_auc": 0.9868031688315927
+  },
+  "gates": {
+    "accuracy": 0.92,
+    "f1_macro": 0.91,
+    "roc_auc": 0.95
+  },
+  "gates_passed": true,
+  "dataset": "fancyzhx/amazon_polarity",
+  "splits": {
+    "train": 60000,
+    "val": 5000,
+    "test": 10000
+  },
+  "hyperparameters": {
+    "base_model": "distilbert-base-uncased",
+    "learning_rate": 3e-05,
+    "batch_size": 16,
+    "grad_accum": 2,
+    "epochs": 2,
+    "warmup_ratio": 0.1,
+    "weight_decay": 0.01,
+    "max_length": 256,
+    "seed": 42
+  },
+  "training": {
+    "device": "mps",
+    "steps_completed": 2000,
+    "steps_planned": 3750,
+    "best_checkpoint": "runs/distilbert-amazon/checkpoint-1750",
+    "best_val_loss": 0.12888607382774353,
+    "stop_reason": "overfitting: val loss 0.1689 is >5% above best 0.1289 (step 1750)",
+    "notes": [
+      "Run interrupted at step 588 (Mac memory pressure) and resumed from checkpoint-500 with batch_size 16 x grad_accum 2 (same effective batch of 32).",
+      "Transformers did not average the loss over accumulation steps for DistilBERT, so logged train loss and raw gradients after step 500 were 2x; learning_curve.csv train rows after step 500 are corrected by /2. AdamW is invariant to constant gradient scale; validation and test metrics are unaffected. Fixed in scripts/train.py for future runs."
+    ]
+  },
+  "wandb_run": null
+}

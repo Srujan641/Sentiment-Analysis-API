@@ -1,0 +1,37 @@
+# W&B Bayesian hyperparameter sweep: 10 runs that learn from each other.
+#   wandb sweep sweeps/sweep.yaml          # prints SWEEP_ID
+#   wandb agent <entity>/<project>/<SWEEP_ID> --count 10
+# or: python -m scripts.sweep --count 10
+program: scripts/train.py
+method: bayes
+metric:
+  name: eval/f1_macro      # validation F1 macro; the test set is never used for selection
+  goal: maximize
+run_cap: 10
+early_terminate:
+  type: hyperband
+  min_iter: 1
+parameters:
+  learning_rate:
+    distribution: log_uniform_values
+    min: 1.0e-5
+    max: 1.0e-4
+  batch_size:
+    values: [16, 32]
+  warmup_ratio:
+    distribution: uniform
+    min: 0.0
+    max: 0.2
+  weight_decay:
+    values: [0.0, 0.01, 0.1]
+  epochs:
+    values: [2, 3]
+command:
+  - ${env}
+  - ${interpreter}
+  - -m
+  - scripts.train
+  - --wandb
+  - --fp16
+  - --no_enforce_gates   # sweep runs explore; only the final retrain must pass the gates
+  - ${args}
