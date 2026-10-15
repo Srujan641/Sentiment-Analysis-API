@@ -48,18 +48,21 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: models/distilbert-sentiment
-          key: model-v2-${{ env.QUICKSTART_MODEL }}
+          key: model-v3-${{ env.QUICKSTART_MODEL }}
       - name: Fetch model weights
         run: |
           if [ ! -f models/distilbert-sentiment/model.safetensors ]; then
             pip install "huggingface_hub>=0.34"
-            hf download "$QUICKSTART_MODEL" --include "*.json" "*.txt" "model.safetensors" \
+            hf download "$QUICKSTART_MODEL" config.json model.safetensors tokenizer_config.json vocab.txt \
               --local-dir models/distilbert-sentiment
             # That repo ships only vocab.txt; it was fine-tuned from distilbert-base-uncased, whose
             # fast-tokenizer file is identical, and Transformers 5 needs tokenizer.json to load.
             hf download distilbert/distilbert-base-uncased tokenizer.json \
               --local-dir models/distilbert-sentiment
           fi
+          ls -la models/distilbert-sentiment
+          test -f models/distilbert-sentiment/config.json
+          test -f models/distilbert-sentiment/tokenizer.json
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
