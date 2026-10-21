@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     # Texts per forward pass. /batch accepts at most this many so it is always one pass.
     inference_batch_size: int = Field(default=32, ge=1, le=256)
     device: str = "auto"  # auto | cpu | cuda | mps
+    # Below this confidence a prediction is flagged `uncertain` (mixed or sarcastic reviews land here).
+    uncertainty_threshold: float = Field(default=0.75, ge=0.5, le=1.0)
     num_threads: int | None = None
 
     # --- request limits ---

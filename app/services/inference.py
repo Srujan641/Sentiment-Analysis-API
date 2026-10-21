@@ -22,6 +22,7 @@ class Prediction:
     label: str
     confidence: float
     probabilities: dict[str, float]
+    uncertain: bool = False
 
 
 class InferenceBackend(Protocol):
@@ -57,9 +58,10 @@ class TransformerBackend:
 
 
 class InferenceService:
-    def __init__(self, backend: InferenceBackend, batch_size: int = 32):
+    def __init__(self, backend: InferenceBackend, batch_size: int = 32, uncertainty_threshold: float = 0.75):
         self.backend = backend
         self.batch_size = batch_size
+        self.uncertainty_threshold = uncertainty_threshold
         # Requests run in a threadpool; one forward pass at a time keeps the tokenizer
         # thread-safe and lets torch use all cores for that pass.
         self._lock = threading.Lock()
@@ -92,8 +94,11 @@ class InferenceService:
                 label=self.labels[best],
                 confidence=float(probs[best]),
                 probabilities={label: float(p) for label, p in zip(self.labels, probs, strict=True)},
+                uncertain=probs[best] < self.uncertainty_threshold,
             )
             metrics.PREDICTIONS.labels(label=pred.label).inc()
+            if pred.uncertain:
+                metrics.UNCERTAIN_PREDICTIONS.inc()
             metrics.PREDICTION_CONFIDENCE.observe(pred.confidence)
             predictions.append(pred)
         return predictions
@@ -109,4 +114,8 @@ def build_inference_service(settings) -> InferenceService:
     backend = TransformerBackend(loaded, max_length=settings.max_sequence_length)
     # Warm-up pass so the first real request doesn't pay for lazy kernel initialisation.
     backend.predict_proba(["warm-up"])
-    return InferenceService(backend, batch_size=settings.inference_batch_size)
+    return InferenceService(
+        backend,
+        batch_size=settings.inference_batch_size,
+        uncertainty_threshold=settings.uncertainty_threshold,
+    )

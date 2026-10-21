@@ -18,6 +18,9 @@ RATE_LIMITED = Counter("rate_limited_requests_total", "Requests rejected with 42
 
 # --- ML ---
 PREDICTIONS = Counter("sentiment_predictions_total", "Predictions served, by predicted label.", ["label"])
+UNCERTAIN_PREDICTIONS = Counter(
+    "sentiment_uncertain_predictions_total", "Predictions below the uncertainty threshold."
+)
 PREDICTION_CONFIDENCE = Histogram(
     "sentiment_prediction_confidence",
     "Confidence (max class probability) of each prediction.",

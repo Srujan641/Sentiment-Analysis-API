@@ -67,7 +67,12 @@ def backend():
 
 
 def make_client(settings, backend):
-    app = create_app(settings, inference=InferenceService(backend, batch_size=settings.inference_batch_size))
+    inference = InferenceService(
+        backend,
+        batch_size=settings.inference_batch_size,
+        uncertainty_threshold=settings.uncertainty_threshold,
+    )
+    app = create_app(settings, inference=inference)
     return TestClient(app)
 
 

@@ -35,6 +35,7 @@ async def predict(
         text=body.text,
         label=pred.label,
         confidence=round(pred.confidence, 6),
+        uncertain=pred.uncertain,
         probabilities=_round(pred.probabilities) if body.return_probabilities else None,
         latency_ms=round(latency_ms, 2),
         request_id=request_id,
@@ -60,6 +61,7 @@ async def batch(
                 text=text,
                 label=p.label,
                 confidence=round(p.confidence, 6),
+                uncertain=p.uncertain,
                 probabilities=_round(p.probabilities) if body.return_probabilities else None,
             )
             for text, p in zip(body.texts, preds, strict=True)

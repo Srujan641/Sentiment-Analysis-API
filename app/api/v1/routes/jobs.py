@@ -75,6 +75,7 @@ async def job_results(job_id: str, jobs: JobManager = Depends(get_jobs)):
                 text=text,
                 label=p.label,
                 confidence=round(p.confidence, 6),
+                uncertain=p.uncertain,
                 probabilities={k: round(v, 6) for k, v in p.probabilities.items()} if with_probs else None,
             )
             for text, p in zip(job.texts, job.results, strict=True)

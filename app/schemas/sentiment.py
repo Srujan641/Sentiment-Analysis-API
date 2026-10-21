@@ -64,6 +64,8 @@ class JobRequest(BaseModel):
 class PredictionOut(BaseModel):
     label: str
     confidence: float = Field(..., ge=0, le=1)
+    # True when confidence is below UNCERTAINTY_THRESHOLD; `label` is still the model's best guess.
+    uncertain: bool = False
     probabilities: dict[str, float] | None = None
 
 

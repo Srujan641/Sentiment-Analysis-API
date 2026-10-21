@@ -76,3 +76,16 @@ def test_openapi_lists_versioned_routes(client):
         "/api/v1/jobs/{job_id}/results",
     ]:
         assert p in paths
+
+
+def test_predict_flags_uncertain_below_threshold(client):
+    confident = client.post("/api/v1/predict", json={"text": "Best product I have ever bought!"}).json()
+    unsure = client.post("/api/v1/predict", json={"text": "It is a box."}).json()  # stub scores 0.5
+    assert confident["uncertain"] is False
+    assert unsure["uncertain"] is True
+    assert unsure["label"] in {"POSITIVE", "NEGATIVE"}  # best guess is still returned
+
+
+def test_batch_items_carry_uncertain_flag(client):
+    r = client.post("/api/v1/batch", json={"texts": ["Great product!", "It is a box."]})
+    assert [x["uncertain"] for x in r.json()["results"]] == [False, True]
