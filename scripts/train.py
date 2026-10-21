@@ -50,6 +50,12 @@ def parse_args(argv=None):
     p.add_argument("--train_samples", type=int, default=60000)
     p.add_argument("--val_samples", type=int, default=5000)
     p.add_argument("--test_samples", type=int, default=10000)
+    p.add_argument(
+        "--typo_rate",
+        type=float,
+        default=0.2,
+        help="share of training reviews given realistic typos (0 disables); val/test stay clean",
+    )
     # model / optimisation
     p.add_argument("--base_model", default="distilbert-base-uncased")
     p.add_argument("--max_length", type=int, default=256)
@@ -133,12 +139,26 @@ def load_splits(args):
     if before != len(train):
         log.info("removed %d train rows duplicated in val/test", before - len(train))
 
+    if args.typo_rate > 0:
+        train = train.map(
+            lambda ex, i: {"text": _maybe_typo(ex["text"], args.seed + i, args.typo_rate)},
+            with_indices=True,
+        )
+        log.info("typo augmentation: ~%.0f%% of training reviews misspelled", args.typo_rate * 100)
+
     for name, ds in (("train", train), ("val", val), ("test", test)):
         pos = sum(ds["label"]) / len(ds)
         log.info("%-5s n=%-6d positive=%.3f", name, len(ds), pos)
         if not 0.3 <= pos <= 0.7:
             log.warning("%s split is imbalanced (positive=%.2f); watch F1 macro, not accuracy", name, pos)
     return train, val, test
+
+
+def _maybe_typo(text: str, seed: int, rate: float) -> str:
+    from scripts.augment import add_typos
+
+    rng = random.Random(seed)
+    return add_typos(text, rng) if rng.random() < rate else text
 
 
 # ---------------------------------------------------------------- metrics
@@ -346,13 +366,29 @@ def main(argv=None) -> int:
             for k, v in test_metrics.items()
         )
     )
+    # Robustness check (reported, not gated): the same test reviews, every one with typos.
+    typo_test = test.map(lambda ex, i: {"text": _maybe_typo(ex["text"], 10**6 + i, 1.0)}, with_indices=True)
+    typo_out = trainer.predict(
+        typo_test.map(tokenize, batched=True, remove_columns=["text"]), metric_key_prefix="typo"
+    )
+    robustness = {
+        "clean_accuracy": test_metrics["accuracy"],
+        "typo_accuracy": float(typo_out.metrics["typo_accuracy"]),
+    }
+    log.info("ROBUSTNESS  clean=%.4f  with typos=%.4f", *robustness.values())
+
     if run:
-        run.summary.update({f"test/{k}": v for k, v in test_metrics.items()} | {"gates_passed": passed})
+        run.summary.update(
+            {f"test/{k}": v for k, v in test_metrics.items()}
+            | {f"robustness/{k}": v for k, v in robustness.items()}
+            | {"gates_passed": passed}
+        )
 
     report = {
         "test_metrics": test_metrics,
         "gates": GATES,
         "gates_passed": passed,
+        "robustness": robustness,
         "dataset": args.data_file or args.dataset,
         "splits": {"train": len(train), "val": len(val), "test": len(test)},
         "hyperparameters": {
@@ -366,6 +402,7 @@ def main(argv=None) -> int:
                 "warmup_ratio",
                 "weight_decay",
                 "max_length",
+                "typo_rate",
                 "seed",
             )
         },
