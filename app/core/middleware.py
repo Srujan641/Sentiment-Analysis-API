@@ -24,8 +24,8 @@ from app.services import metrics
 
 logger = logging.getLogger("app.access")
 
-# Probes, metrics and docs are never rate limited or authenticated.
-EXEMPT_PREFIXES = ("/health", "/ready", "/metrics", "/docs", "/redoc", "/openapi.json")
+# Probes, metrics, docs and the frontend's files are never rate limited or authenticated.
+EXEMPT_PREFIXES = ("/health", "/ready", "/metrics", "/docs", "/redoc", "/openapi.json", "/static")
 
 
 def _exempt(path: str) -> bool:
