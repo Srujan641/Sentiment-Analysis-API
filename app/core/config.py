@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     auth_rate_limit: str = "10/minute"  # signup / login attempts per IP
 
+    # --- review sources ---
+    firecrawl_api_key: str | None = None  # enables the web connector
+    store_country: str = "in"  # app-store country for search and reviews
+
     @field_validator("api_keys", "cors_origins", mode="before")
     @classmethod
     def _split_csv(cls, value):

@@ -182,3 +182,38 @@ class Analysis(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ProductSource(Base):
+    """A place reviews are collected from for a product: an app, a web page, a video..."""
+
+    __tablename__ = "product_sources"
+    __table_args__ = (UniqueConstraint("product_id", "connector", "ref", name="uq_source_product_ref"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    org_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    product_id: Mapped[str] = mapped_column(ForeignKey("products.id", ondelete="CASCADE"), index=True)
+    connector: Mapped[str] = mapped_column(String(30))
+    ref: Mapped[str] = mapped_column(String(500))
+    label: Mapped[str] = mapped_column(String(300))
+    url: Mapped[str | None] = mapped_column(String(1000))
+    last_collected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_added: Mapped[int | None] = mapped_column(Integer)
+    last_error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class CollectionRun(Base):
+    """One "collect now" job across a product's sources; per-source results stored as JSON."""
+
+    __tablename__ = "collection_runs"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    org_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    product_id: Mapped[str] = mapped_column(ForeignKey("products.id", ondelete="CASCADE"), index=True)
+    status: Mapped[str] = mapped_column(String(12), default="queued")
+    stage: Mapped[str | None] = mapped_column(String(200))
+    results: Mapped[str | None] = mapped_column(Text)
+    error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -5,11 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/app/AppShell";
 import { Insights } from "@/components/app/Insights";
+import { Sources } from "@/components/app/Sources";
 import { Empty, Notice, formatDate } from "@/components/app/ui";
 import { FormError } from "@/components/forms/Field";
 import { api, ApiError, type Change, type IngestResult, type Product, type Review } from "@/lib/api";
 
-type Tab = "insights" | "reviews" | "changes";
+type Tab = "insights" | "sources" | "reviews" | "changes";
 
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
@@ -63,6 +64,7 @@ export default function ProductPage() {
         {(
           [
             ["insights", "Insights"],
+            ["sources", "Sources"],
             ["reviews", "Reviews"],
             ["changes", "Product changes"],
           ] as const
@@ -81,6 +83,7 @@ export default function ProductPage() {
         ))}
       </div>
 
+      {tab === "sources" && <Sources productId={id} productName={product.name} onCollected={load} />}
       {tab === "reviews" && <ReviewsTab productId={id} onChanged={load} />}
       {tab === "changes" && <ChangesTab productId={id} />}
       {tab === "insights" && <Insights productId={id} reviewCount={product.review_count} />}

@@ -17,7 +17,11 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_UPLOAD_ROWS = 50_000
 
 
-def _store(db: Session, p: Principal, product_id: str, raw_rows: list[dict], source: str) -> IngestResult:
+def store_reviews(
+    db: Session, p: Principal, product_id: str, raw_rows: list[dict], source: str, allow_partial: bool = False
+) -> IngestResult:
+    """Clean, de-duplicate and store reviews. Over quota: API pushes are rejected whole;
+    background collections (allow_partial) keep what fits and report the rest."""
     cleaned, rejected = [], 0
     for raw in raw_rows:
         r = clean(raw)
@@ -42,7 +46,10 @@ def _store(db: Session, p: Principal, product_id: str, raw_rows: list[dict], sou
     duplicates = len(cleaned) - len(new)
 
     left = usage.remaining(db, p.org, "reviews_ingested")
-    if left is not None and len(new) > left:
+    skipped = 0
+    if left is not None and len(new) > left and allow_partial:
+        skipped, new = len(new) - left, new[:left]
+    elif left is not None and len(new) > left:
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
             f"This would add {len(new)} reviews but your {p.plan.name} plan has {left} left this month.",
@@ -69,6 +76,7 @@ def _store(db: Session, p: Principal, product_id: str, raw_rows: list[dict], sou
         duplicates=duplicates,
         rejected=rejected,
         remaining_this_month=usage.remaining(db, p.org, "reviews_ingested"),
+        skipped_over_quota=skipped,
     )
 
 
@@ -79,7 +87,7 @@ def push_reviews(
     """Push up to 1,000 reviews as JSON."""
     owned_product(db, p, product_id)
     rows = [r.model_dump() for r in body.reviews]
-    return _store(db, p, product_id, rows, body.source)
+    return store_reviews(db, p, product_id, rows, body.source)
 
 
 @router.post("/upload", response_model=IngestResult, status_code=status.HTTP_201_CREATED)
@@ -104,7 +112,7 @@ async def upload_reviews(
         raise HTTPException(
             status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, f"At most {MAX_UPLOAD_ROWS:,} rows per file"
         )
-    return _store(db, p, product_id, rows, "upload")
+    return store_reviews(db, p, product_id, rows, "upload")
 
 
 @router.get("", response_model=ReviewPage)

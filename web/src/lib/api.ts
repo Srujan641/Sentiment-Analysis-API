@@ -176,3 +176,33 @@ export type AnalysisRun = {
   status_url: string;
   report_url: string;
 };
+
+// ---- review sources (app/platform/routes/sources.py) ----
+export type ConnectorInfo = { name: string; label: string; available: boolean; requires: string | null };
+export type SourceCandidate = {
+  connector: string;
+  ref: string;
+  label: string;
+  url: string | null;
+  detail: string | null;
+  allowed: boolean;
+  reason: string | null;
+};
+export type Source = {
+  id: string;
+  connector: string;
+  ref: string;
+  label: string;
+  url: string | null;
+  last_collected_at: string | null;
+  last_added: number | null;
+  last_error: string | null;
+};
+export type CollectionRun = {
+  id: string;
+  status: "queued" | "running" | "complete" | "failed";
+  stage: string | null;
+  results: { label: string; connector: string; fetched?: number; added?: number; duplicates?: number; skipped_over_quota?: number; error?: string }[] | null;
+  error: string | null;
+  status_url: string;
+};

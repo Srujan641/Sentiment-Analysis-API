@@ -138,6 +138,7 @@ class IngestResult(BaseModel):
     duplicates: int
     rejected: int
     remaining_this_month: int | None
+    skipped_over_quota: int = 0
 
 
 class ReviewOut(_Out):

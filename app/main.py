@@ -20,6 +20,7 @@ from starlette.responses import Response
 from app import __version__
 from app.analysis.aspects import SentenceTransformerEncoder
 from app.api.v1.router import api_router
+from app.connectors.registry import build_connectors
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
 from app.core.middleware import ApiKeyMiddleware, RateLimitMiddleware, RequestIdMiddleware
@@ -41,6 +42,7 @@ def create_app(
     settings: Settings | None = None,
     inference: InferenceService | None = None,
     encoder_factory=None,
+    connectors: dict | None = None,
 ) -> FastAPI:
     """Build the app. Tests pass a stub `inference` service and `encoder_factory` to skip loading real models."""
     settings = settings or get_settings()
@@ -88,10 +90,12 @@ def create_app(
     app.state.db = Database(settings.database_url)
     app.state.db.create_all()
     app.state.platform_limiter = MovingWindowRateLimiter(storage_from_string(settings.rate_limit_storage_uri))
+    app.state.connectors = connectors if connectors is not None else build_connectors(settings)
     app.state.analysis_runner = AnalysisRunner(
         app.state.db,
         get_classifier=lambda: app.state.inference,
         encoder_factory=encoder_factory or SentenceTransformerEncoder,
+        get_connectors=lambda: app.state.connectors,
     )
 
     # Starlette wraps middleware in reverse order of registration: the last one added is
