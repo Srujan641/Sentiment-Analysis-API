@@ -18,12 +18,14 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.responses import Response
 
 from app import __version__
+from app.analysis.aspects import SentenceTransformerEncoder
 from app.api.v1.router import api_router
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
 from app.core.middleware import ApiKeyMiddleware, RateLimitMiddleware, RequestIdMiddleware
 from app.platform.db import Database
 from app.platform.router import platform_router
+from app.platform.runner import AnalysisRunner
 from app.schemas.sentiment import HealthResponse
 from app.services import metrics
 from app.services.drift import DriftMonitor
@@ -35,8 +37,12 @@ logger = logging.getLogger(__name__)
 STATIC_DIR = Path(__file__).parent / "static"
 
 
-def create_app(settings: Settings | None = None, inference: InferenceService | None = None) -> FastAPI:
-    """Build the app. Tests pass a stub `inference` service to skip loading real weights."""
+def create_app(
+    settings: Settings | None = None,
+    inference: InferenceService | None = None,
+    encoder_factory=None,
+) -> FastAPI:
+    """Build the app. Tests pass a stub `inference` service and `encoder_factory` to skip loading real models."""
     settings = settings or get_settings()
     configure_logging(settings.log_level, settings.log_json)
 
@@ -61,6 +67,7 @@ def create_app(settings: Settings | None = None, inference: InferenceService | N
             yield
         finally:
             await app.state.jobs.stop()
+            app.state.analysis_runner.shutdown()
             metrics.MODEL_LOADED.set(0)
             app.state.inference = None
 
@@ -81,6 +88,11 @@ def create_app(settings: Settings | None = None, inference: InferenceService | N
     app.state.db = Database(settings.database_url)
     app.state.db.create_all()
     app.state.platform_limiter = MovingWindowRateLimiter(storage_from_string(settings.rate_limit_storage_uri))
+    app.state.analysis_runner = AnalysisRunner(
+        app.state.db,
+        get_classifier=lambda: app.state.inference,
+        encoder_factory=encoder_factory or SentenceTransformerEncoder,
+    )
 
     # Starlette wraps middleware in reverse order of registration: the last one added is
     # outermost. Effective order per request: CORS -> rate limit -> request ID -> API key.

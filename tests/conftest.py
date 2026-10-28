@@ -73,7 +73,9 @@ def make_client(settings, backend):
         batch_size=settings.inference_batch_size,
         uncertainty_threshold=settings.uncertainty_threshold,
     )
-    app = create_app(settings, inference=inference)
+    from tests.test_analysis import HashEncoder  # tiny deterministic encoder instead of the real model
+
+    app = create_app(settings, inference=inference, encoder_factory=HashEncoder)
     return TestClient(app)
 
 

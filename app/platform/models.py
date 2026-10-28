@@ -162,3 +162,23 @@ class UsageCounter(Base):
     period: Mapped[str] = mapped_column(String(7), primary_key=True)  # YYYY-MM
     metric: Mapped[str] = mapped_column(String(40), primary_key=True)
     count: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class Analysis(Base):
+    """One analysis run (quick or full) of a product's reviews; the report is stored as JSON."""
+
+    __tablename__ = "analyses"
+    __table_args__ = (Index("ix_analyses_product_created", "product_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    org_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    product_id: Mapped[str] = mapped_column(ForeignKey("products.id", ondelete="CASCADE"))
+    kind: Mapped[str] = mapped_column(String(10))  # quick | full
+    status: Mapped[str] = mapped_column(String(12), default="queued")  # queued | running | complete | failed
+    stage: Mapped[str | None] = mapped_column(String(60))
+    error: Mapped[str | None] = mapped_column(Text)
+    review_count: Mapped[int | None] = mapped_column(Integer)
+    report: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

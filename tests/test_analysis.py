@@ -151,6 +151,7 @@ def test_full_report_verifies_fix(matcher):
     assert res["aspect"] == "battery life"
     assert res["verdict"] == "improved"
     assert r["trends"] and r["trends"][0]["weeks"]
+    assert "battery life" in {t["aspect"] for t in r["trends"]}  # chart available for the verdict
     assert isinstance(r["alerts"], list)
 
 

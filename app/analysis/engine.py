@@ -266,6 +266,22 @@ def analyse(
         report["fix_verification"] = [
             _verify(ch, matcher, by_aspect, series, discovered_names) for ch in changes
         ]
+        # Every verified aspect gets a weekly series, so verdicts can be read next to the chart.
+        have = {t["aspect"] for t in report["trends"]}
+        for fv in report["fix_verification"]:
+            for res in fv["results"]:
+                a = res.get("aspect")
+                if a and a not in have and dated:
+                    have.add(a)
+                    report["trends"].append(
+                        {
+                            "aspect": a,
+                            "weeks": [
+                                {"week": w.isoformat(), "reviews": rv, "negative": ev}
+                                for w, (rv, ev) in stats.weekly(*series(a)).items()
+                            ],
+                        }
+                    )
 
         alerts = []
         for s in lacking:
