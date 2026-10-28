@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.platform import usage
-from app.platform.deps import Principal, get_db, get_principal
+from app.platform.deps import Principal, get_db, get_polling_principal, get_principal
 from app.platform.models import Analysis
 from app.platform.routes.products import owned_product
 
@@ -111,7 +111,10 @@ def list_analyses(product_id: str, p: Principal = Depends(get_principal), db: Se
 
 
 @router.get("/analyses/{analysis_id}", response_model=AnalysisOut)
-def get_analysis(analysis_id: str, p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
+def get_analysis(
+    analysis_id: str, p: Principal = Depends(get_polling_principal), db: Session = Depends(get_db)
+):
+    """Status of an analysis. Poll freely: this has its own limit (120/min), separate from your plan's."""
     return _out(_owned(db, p, analysis_id))
 
 

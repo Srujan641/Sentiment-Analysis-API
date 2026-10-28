@@ -46,7 +46,7 @@ def wait(c, analysis_id, timeout=30):
         a = c.get(f"/v1/analyses/{analysis_id}").json()
         if a["status"] in ("complete", "failed"):
             return a
-        time.sleep(0.05)
+        time.sleep(0.2)
     raise AssertionError("analysis did not finish")
 
 
@@ -99,3 +99,15 @@ def test_report_quota_and_isolation(settings, backend):
         assert b.get(f"/v1/analyses/{ids[0]}").status_code == 404
         assert b.get(f"/v1/analyses/{ids[0]}/report").status_code == 404
         assert b.post(f"/v1/products/{pid}/analyses", json={"kind": "quick"}).status_code == 404
+
+
+def test_status_polling_does_not_use_plan_rate_limit(settings, backend):
+    with make_client(settings, backend) as c:
+        signup(c)
+        pid = seed(c)
+        aid = c.post(f"/v1/products/{pid}/analyses", json={"kind": "quick"}).json()["id"]
+        # Free plan allows 30 requests/minute; polling 40 times must still succeed.
+        codes = [c.get(f"/v1/analyses/{aid}").status_code for _ in range(40)]
+        assert set(codes) == {200}
+        assert c.get("/v1/usage").status_code == 200  # plan budget not exhausted by polling
+        wait(c, aid)

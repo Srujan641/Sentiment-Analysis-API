@@ -40,7 +40,7 @@ export function Insights({ productId, reviewCount }: { productId: string; review
       const r = await api<AnalysisRun>(`/v1/analyses/${id}`);
       setRun(r);
       if (r.status === "queued" || r.status === "running") {
-        timer.current = setTimeout(() => pollRef.current(id), 1000);
+        timer.current = setTimeout(() => pollRef.current(id), 2000);
       } else if (r.status === "complete") {
         setReport(await api<Report>(r.report_url));
       } else {

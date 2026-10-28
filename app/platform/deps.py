@@ -72,24 +72,34 @@ def _raw_key(request: Request) -> str | None:
     return auth[7:].strip() if auth.lower().startswith("bearer ") else None
 
 
-def _rate_limit(request: Request, response: Response, principal: Principal) -> None:
+# Cheap status polling (GET /v1/analyses/{id}) has its own budget, so waiting for a long
+# analysis never uses up a plan's request allowance.
+POLL_RATE_LIMIT = "120/minute"
+
+
+def _rate_limit(request: Request, response: Response, principal: Principal, scope: str = "v1") -> None:
     limiter = request.app.state.platform_limiter
-    limit = parse(principal.plan.rate_limit)
+    limit = parse(principal.plan.rate_limit if scope == "v1" else POLL_RATE_LIMIT)
     identity = f"key:{principal.api_key.id}" if principal.api_key else f"user:{principal.user.id}"
-    allowed = limiter.hit(limit, "v1", identity)
-    reset_at, remaining = limiter.get_window_stats(limit, "v1", identity)
+    allowed = limiter.hit(limit, scope, identity)
+    reset_at, remaining = limiter.get_window_stats(limit, scope, identity)
     response.headers["X-RateLimit-Limit"] = str(limit.amount)
     response.headers["X-RateLimit-Remaining"] = str(max(remaining, 0))
     if not allowed:
         retry = max(int(reset_at - datetime.now(UTC).timestamp()), 1)
+        what = (
+            f"{principal.plan.rate_limit} for the {principal.plan.name} plan"
+            if scope == "v1"
+            else POLL_RATE_LIMIT
+        )
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
-            f"Rate limit of {principal.plan.rate_limit} for the {principal.plan.name} plan exceeded",
+            f"Rate limit of {what} exceeded",
             headers={"Retry-After": str(retry)},
         )
 
 
-def get_principal(request: Request, response: Response, db: Session = Depends(get_db)) -> Principal:
+def _authenticate(request: Request, db: Session) -> Principal:
     raw = _raw_key(request)
     if raw:
         principal = _from_api_key(db, raw)
@@ -104,7 +114,19 @@ def get_principal(request: Request, response: Response, db: Session = Depends(ge
                 "Authentication required: send an API key or log in",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+    return principal
+
+
+def get_principal(request: Request, response: Response, db: Session = Depends(get_db)) -> Principal:
+    principal = _authenticate(request, db)
     _rate_limit(request, response, principal)
+    return principal
+
+
+def get_polling_principal(request: Request, response: Response, db: Session = Depends(get_db)) -> Principal:
+    """For status polling: authenticated as usual, limited by POLL_RATE_LIMIT instead of the plan."""
+    principal = _authenticate(request, db)
+    _rate_limit(request, response, principal, scope="poll")
     return principal
 
 
