@@ -51,6 +51,15 @@ class Settings(BaseSettings):
     drift_reference_path: str = "models/distilbert-sentiment/reference_stats.json"
     drift_window: int = Field(default=1000, ge=50)
 
+    # --- platform ---
+    # SQLite for development and tests; Postgres in production
+    # (postgresql+psycopg://user:pass@host/db). Same code either way.
+    database_url: str = "sqlite:///data/reviewpulse.db"
+    session_ttl_days: int = Field(default=14, ge=1, le=90)
+    # Set true behind HTTPS so the session cookie is never sent over plain HTTP.
+    cookie_secure: bool = False
+    auth_rate_limit: str = "10/minute"  # signup / login attempts per IP
+
     @field_validator("api_keys", "cors_origins", mode="before")
     @classmethod
     def _split_csv(cls, value):

@@ -12,6 +12,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from limits.storage import storage_from_string
+from limits.strategies import MovingWindowRateLimiter
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.responses import Response
 
@@ -20,6 +22,8 @@ from app.api.v1.router import api_router
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging
 from app.core.middleware import ApiKeyMiddleware, RateLimitMiddleware, RequestIdMiddleware
+from app.platform.db import Database
+from app.platform.router import platform_router
 from app.schemas.sentiment import HealthResponse
 from app.services import metrics
 from app.services.drift import DriftMonitor
@@ -72,6 +76,12 @@ def create_app(settings: Settings | None = None, inference: InferenceService | N
     app.state.settings = settings
     app.state.inference = None
 
+    # Platform (accounts, keys, products, reviews). Tables are created on startup in
+    # development; production uses the same models against Postgres.
+    app.state.db = Database(settings.database_url)
+    app.state.db.create_all()
+    app.state.platform_limiter = MovingWindowRateLimiter(storage_from_string(settings.rate_limit_storage_uri))
+
     # Starlette wraps middleware in reverse order of registration: the last one added is
     # outermost. Effective order per request: CORS -> rate limit -> request ID -> API key.
     app.add_middleware(ApiKeyMiddleware, settings=settings)
@@ -81,12 +91,13 @@ def create_app(settings: Settings | None = None, inference: InferenceService | N
         CORSMiddleware,
         allow_origins=settings.cors_origins,
         allow_credentials="*" not in settings.cors_origins,
-        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["*"],
         expose_headers=["X-Request-ID", "X-RateLimit-Limit", "X-RateLimit-Remaining", "Retry-After"],
     )
 
     app.include_router(api_router)
+    app.include_router(platform_router)
 
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 

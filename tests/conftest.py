@@ -48,8 +48,9 @@ def reference_file(tmp_path):
 
 
 @pytest.fixture
-def settings(reference_file):
+def settings(reference_file, tmp_path):
     return Settings(
+        database_url=f"sqlite:///{tmp_path}/platform.db",
         api_keys=["test-key"],
         rate_limit_anonymous="1000/minute",
         rate_limit_authenticated="5000/minute",

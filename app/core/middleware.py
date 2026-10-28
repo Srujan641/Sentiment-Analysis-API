@@ -24,12 +24,14 @@ from app.services import metrics
 
 logger = logging.getLogger("app.access")
 
-# Probes, metrics, docs and the frontend's files are never rate limited or authenticated.
-EXEMPT_PREFIXES = ("/health", "/ready", "/metrics", "/docs", "/redoc", "/openapi.json", "/static")
-
 
 def _exempt(path: str) -> bool:
-    return path == "/" or path.startswith(EXEMPT_PREFIXES)
+    """These middlewares guard only the original /api/* sentiment endpoints.
+
+    The /v1 platform authenticates database-backed API keys and applies per-plan limits
+    itself (app/platform/deps.py); probes, metrics, docs and static files are open.
+    """
+    return not path.startswith("/api/")
 
 
 def extract_api_key(headers: Headers) -> str | None:
