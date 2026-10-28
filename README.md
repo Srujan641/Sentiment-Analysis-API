@@ -43,6 +43,28 @@ is in [`docs/metrics.json`](docs/metrics.json).
 
 ---
 
+## ReviewPulse platform (branch `platform`)
+
+The sentiment API is growing into **ReviewPulse**, a self-serve review-intelligence platform for brands.
+Requirements: [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md).
+
+```bash
+# backend: FastAPI with the /v1 platform API (SQLite by default; DATABASE_URL for Postgres)
+make run                                   # http://localhost:8000
+
+# website: Next.js marketing site + dashboard, proxies /v1 to the backend
+cd web && npm install && npm run dev       # http://localhost:3000
+```
+
+| Area | Status |
+|---|---|
+| Accounts, organizations, sessions, self-serve API keys (hashed), plans, quotas, per-plan rate limits | ✅ |
+| Products, logged product changes, review push + CSV/JSON upload with de-duplication and personal-data removal | ✅ |
+| Website: home, pricing, docs, signup/login, dashboard, products, reviews, changes, API keys, settings | ✅ |
+| Aspect analysis, issue ranking, fix verification, early warning, reports | Next milestones |
+
+---
+
 ## Quick start
 
 ```bash
