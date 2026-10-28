@@ -240,6 +240,30 @@ _STOP = {
     "back",
     "never",
 }
+# Time and filler words: never meaningful as an issue name.
+_STOP |= {
+    "now",
+    "today",
+    "yesterday",
+    "again",
+    "still",
+    "ever",
+    "always",
+    "every",
+    "since",
+    "ago",
+    "yet",
+    "please",
+    "pls",
+    "plz",
+    "app",
+    "application",
+    "experience",
+    "service",
+    "worst",
+    "pathetic",
+    "useless",
+}
 GENERIC = {"product", "item", "quality", "thing", "stuff", "purchase"}
 
 
