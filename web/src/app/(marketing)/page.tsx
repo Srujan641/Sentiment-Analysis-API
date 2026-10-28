@@ -1,10 +1,13 @@
 import Link from "next/link";
-import { SITE } from "@/lib/site";
+import { ReviewMarquee } from "@/components/landing/ReviewMarquee";
+import { ScrollStory } from "@/components/landing/ScrollStory";
 
 export default function HomePage() {
   return (
     <>
-      <Hero />
+      <ScrollStory />
+      <Proof />
+      <ReviewMarquee />
       <Problem />
       <Capabilities />
       <HowItWorks />
@@ -17,30 +20,28 @@ export default function HomePage() {
   );
 }
 
-/* ------------------------------------------------------------------ hero */
-function Hero() {
+/* ------------------------------------------------------------------ proof */
+function Proof() {
   return (
     <section className="border-b border-border">
-      <div className="container-page grid items-center gap-12 py-16 md:py-24 lg:grid-cols-[1.05fr_1fr]">
+      <div className="container-page grid items-center gap-12 py-16 md:py-24 lg:grid-cols-[1fr_1.05fr]">
         <div>
-          <p className="eyebrow">Review intelligence for D2C brands</p>
-          <h1 className="mt-4 text-[40px] font-semibold leading-[1.08] tracking-[-0.03em] text-balance sm:text-[52px]">
-            Know what to fix next. Prove the fix worked.
-          </h1>
-          <p className="mt-5 max-w-xl text-lg text-fg-2">
-            {SITE.name} reads every review your customers write, on your store, app stores, YouTube and Reddit, and
-            turns them into a ranked fix list, early warnings before ratings drop, and statistical proof that your
-            changes worked.
+          <p className="eyebrow">Fix verification</p>
+          <h2 className="mt-3 text-[32px] font-semibold leading-[1.1] tracking-[-0.025em] text-balance sm:text-[40px]">
+            Don&apos;t guess whether the fix worked. Measure it.
+          </h2>
+          <p className="mt-4 max-w-lg text-lg text-fg-2">
+            Log the change you shipped. ReviewPulse compares complaints before and after, accounts for trends and review
+            volume, and reports the effect with a confidence interval, or says plainly that there isn&apos;t enough data yet.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/signup" className="btn btn-primary h-11 px-5">
               Start free
             </Link>
-            <Link href="/docs" className="btn btn-secondary h-11 px-5">
-              Read the API docs
+            <Link href="/#product" className="btn btn-secondary h-11 px-5">
+              See all features
             </Link>
           </div>
-          <p className="mt-4 text-[13px] text-muted">Free plan, no card required. API key in under a minute.</p>
         </div>
         <FixVerificationCard />
       </div>
