@@ -17,3 +17,8 @@ argon2-cffi>=23.1
 email-validator>=2.1
 python-multipart>=0.0.9
 # psycopg[binary]>=3.2   # uncomment for Postgres in production (DATABASE_URL=postgresql+psycopg://...)
+
+# Analysis engine: aspect embeddings, clustering, statistics
+sentence-transformers>=3.0
+scikit-learn>=1.5
+statsmodels>=0.14
