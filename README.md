@@ -61,7 +61,19 @@ cd web && npm install && npm run dev       # http://localhost:3000
 | Accounts, organizations, sessions, self-serve API keys (hashed), plans, quotas, per-plan rate limits | ✅ |
 | Products, logged product changes, review push + CSV/JSON upload with de-duplication and personal-data removal | ✅ |
 | Website: home, pricing, docs, signup/login, dashboard, products, reviews, changes, API keys, settings | ✅ |
-| Aspect analysis, issue ranking, fix verification, early warning, reports | Next milestones |
+| Analysis engine: clause sentiment (our DistilBERT), aspects, discovered specific issues, star-rating impact ranking | ✅ |
+| Fix verification (logistic regression, trend-aware, placebo check) and early warning (binomial test vs 8-week baseline) | ✅ |
+| Background analyses, quick/full reports API, Insights dashboard | ✅ |
+| Public connectors (App Store, Google Play, YouTube, Reddit), webhooks, PDF export, scheduled refresh | Next |
+
+**Measured** (`python -m scripts.simulate_stats`, 300 simulations each): fix verification detects a real 30% reduction
+80% of the time with 900 reviews, with a ~6% false-positive rate when nothing changed. A steady decline that was
+already underway can still be credited to a change (~21%), so every verdict is shown next to its weekly chart.
+Early warning catches a 3× jump in complaints 83% of the time about one week in, with false alarms in ~7% of stable
+histories.
+
+**Try it with real data:** `python -m scripts.seed_demo` loads two Amazon Reviews 2023 products into
+`demo@example.com` / `demo-password-123`.
 
 ---
 

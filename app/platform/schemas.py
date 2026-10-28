@@ -129,7 +129,7 @@ class ReviewIn(BaseModel):
 
 class ReviewBatch(BaseModel):
     reviews: list[ReviewIn] = Field(..., min_length=1, max_length=1000)
-    source: str = Field("api", pattern=r"^[a-z_]{2,40}$")
+    source: str = Field("api", pattern=r"^[a-z0-9_]{2,40}$")
 
 
 class IngestResult(BaseModel):

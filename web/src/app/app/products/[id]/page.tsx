@@ -4,18 +4,19 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/app/AppShell";
+import { Insights } from "@/components/app/Insights";
 import { Empty, Notice, formatDate } from "@/components/app/ui";
 import { FormError } from "@/components/forms/Field";
 import { api, ApiError, type Change, type IngestResult, type Product, type Review } from "@/lib/api";
 
-type Tab = "reviews" | "changes" | "insights";
+type Tab = "insights" | "reviews" | "changes";
 
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("reviews");
+  const [tab, setTab] = useState<Tab>("insights");
 
   const load = useCallback(async () => {
     try {
@@ -61,9 +62,9 @@ export default function ProductPage() {
       <div className="mb-5 flex gap-1 border-b border-border" role="tablist">
         {(
           [
+            ["insights", "Insights"],
             ["reviews", "Reviews"],
             ["changes", "Product changes"],
-            ["insights", "Insights"],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -82,7 +83,7 @@ export default function ProductPage() {
 
       {tab === "reviews" && <ReviewsTab productId={id} onChanged={load} />}
       {tab === "changes" && <ChangesTab productId={id} />}
-      {tab === "insights" && <InsightsTab count={product.review_count} />}
+      {tab === "insights" && <Insights productId={id} reviewCount={product.review_count} />}
     </>
   );
 }
@@ -299,19 +300,6 @@ function ChangesTab({ productId }: { productId: string }) {
           </ol>
         )}
       </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ insights */
-function InsightsTab({ count }: { count: number }) {
-  return (
-    <div className="card p-6">
-      <div className="font-medium">Insights are coming in the analysis release</div>
-      <p className="mt-1 max-w-2xl text-sm text-muted">
-        This tab will show the ranked issue list, weekly trends per aspect, early-warning alerts and fix-verification results. Your{" "}
-        {count.toLocaleString()} review{count === 1 ? "" : "s"} and logged changes are already stored, so history will be analysed as soon as it ships.
-      </p>
     </div>
   );
 }

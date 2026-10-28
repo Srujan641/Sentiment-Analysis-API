@@ -101,3 +101,78 @@ export type Usage = {
   reports_generated: Meter;
   rate_limit: string;
 };
+
+// ---- analysis reports (app/analysis/engine.py) ----
+export type Quote = { text: string; review_id: string; rating: number | null; date: string | null; source: string };
+export type AspectStat = {
+  aspect: string;
+  discovered: boolean;
+  mentions: number;
+  negative: number;
+  positive: number;
+  share: number;
+  negative_share: number;
+  negative_rate: number;
+  rating_impact: number | null;
+  quotes: Quote[];
+  specific_issues?: { name: string; mentions: number; quotes: Quote[] }[];
+};
+export type FixResult = {
+  requested: string;
+  aspect: string | null;
+  verdict: "improved" | "worse" | "no_significant_change" | "inconclusive" | "not_enough_data" | "unknown_aspect";
+  before_rate?: number | null;
+  after_rate?: number | null;
+  relative_change?: number | null;
+  ci_low?: number | null;
+  ci_high?: number | null;
+  p_value?: number | null;
+  reviews_before?: number;
+  reviews_after?: number;
+  method?: string;
+  note?: string;
+};
+export type Report = {
+  analysis_id: string;
+  kind: "quick" | "full";
+  generated_at: string;
+  review_count: number;
+  dated_reviews?: number;
+  period?: { from: string | null; to: string | null };
+  overall: {
+    positive_share: number;
+    negative_share: number;
+    sentiment_score: number;
+    average_rating: number | null;
+    rated_reviews: number;
+  } | null;
+  lacking: AspectStat[];
+  strengths: AspectStat[];
+  trends?: { aspect: string; weeks: { week: string; reviews: number; negative: number }[] }[];
+  fix_verification?: { change_id: string; changed_on: string; description: string; results: FixResult[] }[];
+  alerts?: {
+    aspect: string;
+    first_seen: string;
+    current_rate: number;
+    baseline_rate: number;
+    complaints: number;
+    reviews: number;
+    p_value: number;
+    quotes: Quote[];
+  }[];
+  summary: string[];
+  methodology?: Record<string, string | number>;
+};
+export type AnalysisRun = {
+  id: string;
+  product_id: string;
+  kind: "quick" | "full";
+  status: "queued" | "running" | "complete" | "failed";
+  stage: string | null;
+  error: string | null;
+  review_count: number | null;
+  created_at: string;
+  finished_at: string | null;
+  status_url: string;
+  report_url: string;
+};
