@@ -16,7 +16,8 @@ sqlalchemy>=2.0
 argon2-cffi>=23.1
 email-validator>=2.1
 python-multipart>=0.0.9
-# psycopg[binary]>=3.2   # uncomment for Postgres in production (DATABASE_URL=postgresql+psycopg://...)
+psycopg[binary]>=3.2
+alembic>=1.13
 
 # Analysis engine: aspect embeddings, clustering, statistics
 sentence-transformers>=3.0
@@ -26,3 +27,6 @@ statsmodels>=0.14
 # Review sources
 httpx>=0.27
 firecrawl-py>=4.0
+
+# Business PDF reports
+reportlab>=4.2

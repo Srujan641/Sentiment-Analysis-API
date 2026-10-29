@@ -9,7 +9,15 @@ PASSWORD = "correct-horse-battery"
 
 
 def signup(client, email="asha@example.com", **extra):
-    body = {"email": email, "password": PASSWORD, "name": "Asha", **extra}
+    # Business account by default: products, reviews and keys are business features.
+    body = {
+        "email": email,
+        "password": PASSWORD,
+        "name": "Asha",
+        "account_type": "organization",
+        "organization_name": "Acme",
+        **extra,
+    }
     return client.post("/v1/auth/signup", json=body)
 
 
@@ -32,7 +40,7 @@ def test_signup_sets_session_and_me(client):
     assert "rp_session" in r.cookies
     body = r.json()
     assert body["organization"]["plan"] == "free"
-    assert body["organization"]["account_type"] == "individual"
+    assert body["organization"]["account_type"] == "organization"
     assert client.get("/v1/auth/me").json()["user"]["email"] == "asha@example.com"
 
 
@@ -40,7 +48,7 @@ def test_signup_rules(client):
     assert signup(client).status_code == 201
     assert signup(client).status_code == 409  # duplicate email
     assert signup(client, email="b@example.com", password="short").status_code == 422
-    r = signup(client, email="c@example.com", account_type="organization")
+    r = signup(client, email="c@example.com", account_type="organization", organization_name=None)
     assert r.status_code == 422  # organization_name required
 
 
@@ -227,8 +235,13 @@ def test_review_quota(user, client, monkeypatch):
 
 
 def test_plans_public(client):
-    plans = client.get("/v1/plans").json()
-    assert [p["id"] for p in plans] == ["free", "starter", "growth", "enterprise"]
+    business = client.get("/v1/plans?audience=business").json()
+    assert [p["id"] for p in business] == ["free", "starter", "growth", "enterprise"]
+    personal = client.get("/v1/plans?audience=individual").json()
+    assert [(p["id"], p["research_per_day"]) for p in personal] == [
+        ("personal_free", 10),
+        ("personal_plus", 100),
+    ]
 
 
 # ---------------------------------------------------------------- ingest helpers
@@ -258,3 +271,29 @@ def test_parse_upload_json_variants():
     assert parse_upload("a.json", b'[{"review": "ok", "stars": 4}]')[0]["rating"] == 4
     assert parse_upload("a.json", b'{"reviews": [{"text": "ok"}]}')[0]["text"] == "ok"
     assert len(parse_upload("a.jsonl", b'{"text": "a"}\n{"text": "b"}\n')) == 2
+
+
+# ---------------------------------------------------------------- two account types
+def test_personal_and_business_logins_are_separate(client):
+    personal = signup(client, email="p@example.com", account_type="individual", organization_name=None)
+    assert personal.json()["organization"]["plan"] == "personal_free"
+    client.post("/v1/auth/logout")
+    signup(client, email="b@example.com")
+    client.post("/v1/auth/logout")
+
+    def login(email, portal):
+        return client.post("/v1/auth/login", json={"email": email, "password": PASSWORD, "portal": portal})
+
+    assert login("p@example.com", "business").status_code == 403
+    assert "personal login" in login("p@example.com", "business").json()["detail"]
+    assert login("b@example.com", "personal").status_code == 403
+    assert login("p@example.com", "personal").status_code == 200
+    assert login("b@example.com", "business").status_code == 200
+
+
+def test_guardrails_between_account_types(client):
+    signup(client, email="p@example.com", account_type="individual", organization_name=None)
+    r = client.post("/v1/products", json={"name": "Earbuds"})
+    assert r.status_code == 403 and "business accounts" in r.json()["detail"]
+    assert client.get("/v1/connectors").status_code == 403
+    assert client.get("/v1/usage").status_code == 200  # shared

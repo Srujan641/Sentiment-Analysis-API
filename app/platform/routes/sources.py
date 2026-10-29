@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.connectors.base import ConnectorError
 from app.connectors.policy import check_url
-from app.platform.deps import Principal, get_db, get_polling_principal, get_principal
+from app.platform.deps import Principal, get_business_polling_principal, get_business_principal, get_db
 from app.platform.models import CollectionRun, ProductSource
 from app.platform.routes.products import owned_product
 
@@ -97,7 +97,7 @@ def _run_out(r: CollectionRun) -> RunOut:
 
 
 @router.get("/connectors", response_model=list[ConnectorOut])
-def list_connectors(request: Request, p: Principal = Depends(get_principal)):
+def list_connectors(request: Request, p: Principal = Depends(get_business_principal)):
     return [
         ConnectorOut(name=c.name, label=c.label, available=c.available(), requires=c.requires)
         for c in _connectors(request).values()
@@ -110,7 +110,7 @@ def suggest_sources(
     request: Request,
     connector: str = Query(...),
     q: str | None = Query(None, max_length=200, description="Search text; defaults to the product name"),
-    p: Principal = Depends(get_principal),
+    p: Principal = Depends(get_business_principal),
     db: Session = Depends(get_db),
 ):
     """Find candidate sources for a product with one connector. Nothing is collected yet."""
@@ -132,7 +132,9 @@ def suggest_sources(
 
 
 @router.get("/products/{product_id}/sources", response_model=list[SourceOut])
-def list_sources(product_id: str, p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
+def list_sources(
+    product_id: str, p: Principal = Depends(get_business_principal), db: Session = Depends(get_db)
+):
     owned_product(db, p, product_id)
     rows = db.scalars(
         select(ProductSource).where(ProductSource.product_id == product_id).order_by(ProductSource.created_at)
@@ -145,7 +147,7 @@ def add_source(
     product_id: str,
     body: SourceIn,
     request: Request,
-    p: Principal = Depends(get_principal),
+    p: Principal = Depends(get_business_principal),
     db: Session = Depends(get_db),
 ):
     owned_product(db, p, product_id)
@@ -176,7 +178,10 @@ def add_source(
 
 @router.delete("/products/{product_id}/sources/{source_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_source(
-    product_id: str, source_id: str, p: Principal = Depends(get_principal), db: Session = Depends(get_db)
+    product_id: str,
+    source_id: str,
+    p: Principal = Depends(get_business_principal),
+    db: Session = Depends(get_db),
 ):
     owned_product(db, p, product_id)
     src = db.get(ProductSource, source_id)
@@ -188,7 +193,10 @@ def remove_source(
 
 @router.post("/products/{product_id}/collect", response_model=RunOut, status_code=status.HTTP_202_ACCEPTED)
 def collect(
-    product_id: str, request: Request, p: Principal = Depends(get_principal), db: Session = Depends(get_db)
+    product_id: str,
+    request: Request,
+    p: Principal = Depends(get_business_principal),
+    db: Session = Depends(get_db),
 ):
     """Collect new reviews from all of the product's sources in the background."""
     owned_product(db, p, product_id)
@@ -208,7 +216,9 @@ def collect(
 
 
 @router.get("/collections/{run_id}", response_model=RunOut)
-def get_collection(run_id: str, p: Principal = Depends(get_polling_principal), db: Session = Depends(get_db)):
+def get_collection(
+    run_id: str, p: Principal = Depends(get_business_polling_principal), db: Session = Depends(get_db)
+):
     run = db.get(CollectionRun, run_id)
     if run is None or run.org_id != p.org.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Collection not found")

@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.platform import usage
-from app.platform.deps import Principal, get_db, get_principal
+from app.platform.deps import Principal, get_business_principal, get_db
 from app.platform.ingest import clean, parse_upload
 from app.platform.models import Review
 from app.platform.routes.products import owned_product
@@ -82,7 +82,10 @@ def store_reviews(
 
 @router.post("", response_model=IngestResult, status_code=status.HTTP_201_CREATED)
 def push_reviews(
-    product_id: str, body: ReviewBatch, p: Principal = Depends(get_principal), db: Session = Depends(get_db)
+    product_id: str,
+    body: ReviewBatch,
+    p: Principal = Depends(get_business_principal),
+    db: Session = Depends(get_db),
 ):
     """Push up to 1,000 reviews as JSON."""
     owned_product(db, p, product_id)
@@ -94,7 +97,7 @@ def push_reviews(
 async def upload_reviews(
     product_id: str,
     file: UploadFile = File(..., description="CSV (with a text/review column) or JSON / JSONL"),
-    p: Principal = Depends(get_principal),
+    p: Principal = Depends(get_business_principal),
     db: Session = Depends(get_db),
 ):
     """Upload a review export. Columns are matched by common names (text/review, rating/stars, date...)."""
@@ -121,7 +124,7 @@ def list_reviews(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     source: str | None = None,
-    p: Principal = Depends(get_principal),
+    p: Principal = Depends(get_business_principal),
     db: Session = Depends(get_db),
 ):
     owned_product(db, p, product_id)

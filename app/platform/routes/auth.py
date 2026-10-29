@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.platform.deps import SESSION_COOKIE, Principal, auth_rate_limit, get_db, require_user
 from app.platform.models import AccountType, Organization, Role, User, WebSession
+from app.platform.plans import default_plan
 from app.platform.schemas import LoginRequest, MeResponse, OrgOut, SignupRequest, UserOut
 from app.platform.security import hash_password, new_session_token, sha256, verify_password
 
@@ -54,7 +55,7 @@ def signup(body: SignupRequest, request: Request, response: Response, db: Sessio
     org = Organization(
         name=body.organization_name if is_org else f"{body.name} (personal)",
         account_type=AccountType(body.account_type),
-        plan="free",
+        plan=default_plan(body.account_type),
     )
     user = User(
         org=org, email=email, name=body.name, password_hash=hash_password(body.password), role=Role.owner
@@ -70,6 +71,15 @@ def login(body: LoginRequest, request: Request, response: Response, db: Session 
     user = db.scalar(select(User).where(User.email == body.email.lower()))
     if not verify_password(user.password_hash if user else None, body.password):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect email or password")
+    is_business = user.org.account_type == AccountType.organization
+    if body.portal == "personal" and is_business:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "This is a business account. Please use the business login."
+        )
+    if body.portal == "business" and not is_business:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "This is a personal account. Please use the personal login."
+        )
     _start_session(request, response, db, user)
     return _me(user)
 

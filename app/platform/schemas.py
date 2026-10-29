@@ -27,6 +27,9 @@ class SignupRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., max_length=128)
+    # Which login page was used. When set, an account of the other type is refused, so
+    # personal and business users each sign in through their own door.
+    portal: Literal["personal", "business"] | None = None
 
 
 class OrgOut(_Out):

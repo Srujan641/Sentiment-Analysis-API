@@ -1,6 +1,7 @@
 """Usage and plans (ACC-6, ACC-8)."""
 
 from dataclasses import asdict
+from typing import Literal
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -18,6 +19,6 @@ def get_usage(p: Principal = Depends(get_principal), db: Session = Depends(get_d
 
 
 @router.get("/plans")
-def list_plans():
+def list_plans(audience: Literal["individual", "business"] | None = None):
     """Public: plan quotas and features (used by the pricing page)."""
-    return [asdict(p) for p in PLANS.values()]
+    return [asdict(p) for p in PLANS.values() if audience is None or p.audience == audience]

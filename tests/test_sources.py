@@ -182,7 +182,16 @@ def app_client(settings, backend):
         settings, inference=InferenceService(backend), encoder_factory=HashEncoder, connectors=connectors
     )
     with TestClient(app) as c:
-        c.post("/v1/auth/signup", json={"email": "s@example.com", "password": PASSWORD, "name": "S"})
+        c.post(
+            "/v1/auth/signup",
+            json={
+                "email": "s@example.com",
+                "password": PASSWORD,
+                "name": "S",
+                "account_type": "organization",
+                "organization_name": "S Co",
+            },
+        )
         yield c
 
 

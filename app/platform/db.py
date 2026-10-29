@@ -36,6 +36,10 @@ class Database:
         self.sessionmaker = sessionmaker(self.engine, expire_on_commit=False)
 
     def create_all(self) -> None:
+        """SQLite (tests, quick local runs) gets its tables directly. Postgres is managed by
+        Alembic migrations: run `alembic upgrade head` (the Docker image does this on start)."""
+        if self.engine.dialect.name != "sqlite":
+            return
         from app.platform import models  # noqa: F401 - register tables
 
         Base.metadata.create_all(self.engine)

@@ -12,7 +12,13 @@ PASSWORD = "correct-horse-battery"
 def signup(c, email="brand@example.com"):
     r = c.post(
         "/v1/auth/signup",
-        json={"email": email, "password": PASSWORD, "name": "B", "account_type": "individual"},
+        json={
+            "email": email,
+            "password": PASSWORD,
+            "name": "B",
+            "account_type": "organization",
+            "organization_name": "Brand",
+        },
     )
     assert r.status_code == 201
 

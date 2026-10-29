@@ -137,6 +137,37 @@ def require_user(principal: Principal = Depends(get_principal)) -> Principal:
     return principal
 
 
+def _require(principal: Principal, business: bool) -> Principal:
+    is_business = principal.org.account_type == "organization"
+    if business and not is_business:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "This feature is for business accounts. Personal accounts can research products at /v1/research.",
+        )
+    if not business and is_business:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Product research is for personal accounts. Business accounts analyse their own products at /v1/products.",
+        )
+    return principal
+
+
+def get_business_principal(principal: Principal = Depends(get_principal)) -> Principal:
+    return _require(principal, business=True)
+
+
+def get_business_polling_principal(principal: Principal = Depends(get_polling_principal)) -> Principal:
+    return _require(principal, business=True)
+
+
+def get_personal_principal(principal: Principal = Depends(get_principal)) -> Principal:
+    return _require(principal, business=False)
+
+
+def get_personal_polling_principal(principal: Principal = Depends(get_polling_principal)) -> Principal:
+    return _require(principal, business=False)
+
+
 def auth_rate_limit(request: Request) -> None:
     """Brute-force protection for signup and login, per client IP."""
     limiter = request.app.state.platform_limiter

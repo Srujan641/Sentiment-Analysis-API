@@ -50,7 +50,7 @@ class Organization(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
     name: Mapped[str] = mapped_column(String(120))
     account_type: Mapped[AccountType] = mapped_column(Enum(AccountType))
-    plan: Mapped[str] = mapped_column(String(20), default="free")
+    plan: Mapped[str] = mapped_column(String(20), default="free")  # see app/platform/plans.py
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     users: Mapped[list["User"]] = relationship(back_populates="org")
@@ -215,5 +215,27 @@ class CollectionRun(Base):
     stage: Mapped[str | None] = mapped_column(String(200))
     results: Mapped[str | None] = mapped_column(Text)
     error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Research(Base):
+    """A personal product research: link or name in, summary and competitors out."""
+
+    __tablename__ = "researches"
+    __table_args__ = (Index("ix_researches_org_created", "org_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    org_id: Mapped[str] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"))
+    user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    query: Mapped[str] = mapped_column(Text)  # what the user typed or pasted
+    product_name: Mapped[str | None] = mapped_column(String(300))
+    identified_from: Mapped[str | None] = mapped_column(
+        String(60)
+    )  # amazon_link | flipkart_link | web_page | name
+    status: Mapped[str] = mapped_column(String(12), default="queued")
+    stage: Mapped[str | None] = mapped_column(String(200))
+    error: Mapped[str | None] = mapped_column(Text)
+    result: Mapped[str | None] = mapped_column(Text)  # JSON
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
