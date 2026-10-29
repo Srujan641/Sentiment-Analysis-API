@@ -20,3 +20,7 @@ data/*
 reports/*
 !reports/.gitkeep
 .DS_Store
+
+# Prototype assets supplied locally; product photos need licensed replacements before any public launch
+soundmart-frontend.zip
+web/public/products/*.png

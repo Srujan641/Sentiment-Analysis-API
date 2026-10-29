@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { OrbitShowcase } from "@/components/landing/OrbitShowcase";
 import { ReviewMarquee } from "@/components/landing/ReviewMarquee";
 import { ScrollStory } from "@/components/landing/ScrollStory";
 
 export default function HomePage() {
   return (
     <>
+      <OrbitShowcase />
       <ScrollStory />
       <Proof />
       <ReviewMarquee />
