@@ -87,6 +87,11 @@ def test_full_report_requires_paid_plan_and_verifies_fix(settings, backend):
         result = report["fix_verification"][0]["results"][0]
         assert result["aspect"] == "battery life" and result["verdict"] == "improved"
         assert "trends" in report and "alerts" in report
+        assert report["aspects"] and report["sources"] == [{"source": "api", "reviews": 200}]
+        pdf = c.get(f"/v1/analyses/{done['id']}/report.pdf")
+        assert pdf.status_code == 200 and pdf.headers["content-type"] == "application/pdf"
+        assert pdf.content.startswith(b"%PDF") and len(pdf.content) > 20_000
+        assert "Earbuds-review-report.pdf" in pdf.headers["content-disposition"]
 
 
 def test_report_quota_and_isolation(settings, backend):

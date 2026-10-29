@@ -33,6 +33,53 @@ class AnalysisRunner:
     def submit(self, analysis_id: str):
         return self._pool.submit(self._run, analysis_id)
 
+    def submit_research(self, research_id: str):
+        return self._pool.submit(self._research, research_id)
+
+    def _research(self, research_id: str) -> None:
+        from app.platform.models import Research
+        from app.research.identify import IdentifyError
+        from app.research.pipeline import research
+
+        def update(**fields):
+            with self._db.sessionmaker() as s:
+                r = s.get(Research, research_id)
+                for k, v in fields.items():
+                    setattr(r, k, v)
+                s.commit()
+
+        with self._db.sessionmaker() as s:
+            query = s.get(Research, research_id).query
+        update(status="running", stage="starting")
+        try:
+            encoder, matcher = self._models()
+            result = research(
+                query,
+                self._get_connectors(),
+                self._get_classifier(),
+                encoder,
+                matcher,
+                progress=lambda stage: update(stage=stage),
+            )
+            update(
+                status="complete",
+                stage=None,
+                product_name=result["product"]["name"],
+                identified_from=result["product"]["identified_from"],
+                result=json.dumps(result, default=str),
+                finished_at=datetime.now(UTC),
+            )
+        except IdentifyError as exc:
+            update(status="failed", stage=None, error=str(exc), finished_at=datetime.now(UTC))
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("research failed", extra={"research_id": research_id})
+            update(
+                status="failed",
+                stage=None,
+                error=f"Research failed: {type(exc).__name__}",
+                finished_at=datetime.now(UTC),
+            )
+
     def submit_collection(self, run_id: str):
         return self._pool.submit(self._collect, run_id)
 

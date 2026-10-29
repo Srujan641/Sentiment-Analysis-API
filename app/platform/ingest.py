@@ -2,6 +2,7 @@
 
 import csv
 import hashlib
+import html
 import io
 import json
 import re
@@ -31,8 +32,12 @@ class CleanReview:
     content_hash: str
 
 
+_TAG = re.compile(r"<[^>]{0,200}>")
+
+
 def scrub(text: str) -> str:
-    """Remove emails, phone numbers and links; collapse whitespace."""
+    """Strip HTML (exports often contain <br />), then remove emails, phone numbers and links."""
+    text = _TAG.sub(" ", html.unescape(text))
     text = _EMAIL.sub("[email]", text)
     text = _URL.sub("[link]", text)
     text = _PHONE.sub("[phone]", text)

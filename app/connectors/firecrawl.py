@@ -60,7 +60,11 @@ class FirecrawlConnector:
         return self._client
 
     def discover(self, query: str, limit: int = MAX_PAGES_PER_SEARCH) -> list[Candidate]:
-        data = self._fc().search(f"{query} reviews", limit=min(limit, MAX_PAGES_PER_SEARCH))
+        return self.search(f"{query} reviews", limit)
+
+    def search(self, query: str, limit: int = MAX_PAGES_PER_SEARCH) -> list[Candidate]:
+        """Web search; every result is checked against the source policy."""
+        data = self._fc().search(query, limit=min(limit, MAX_PAGES_PER_SEARCH))
         out = []
         for r in data.web or []:
             url = getattr(r, "url", None)
@@ -79,6 +83,33 @@ class FirecrawlConnector:
                 )
             )
         return out
+
+    def extract(self, url: str, schema: dict, prompt: str) -> dict:
+        """AI extraction of structured data from one permitted page."""
+        allowed, reason = check_url(url)
+        if not allowed:
+            raise ConnectorError(reason)
+        doc = self._fc().scrape(
+            url,
+            formats=[{"type": "json", "schema": schema, "prompt": prompt}],
+            only_main_content=True,
+            timeout=60000,
+        )
+        return getattr(doc, "json", None) or {}
+
+    def read_product_name(self, url: str) -> str | None:
+        try:
+            data = self.extract(
+                url,
+                {
+                    "type": "object",
+                    "properties": {"product_name": {"type": "string"}, "brand": {"type": "string"}},
+                },
+                "Give the full name (with brand and model) of the main product this page is about.",
+            )
+        except ConnectorError:
+            return None
+        return (data.get("product_name") or "").strip() or None
 
     def collect(self, ref: str, product_name: str, limit: int = 500) -> list[RawReview]:
         allowed, reason = check_url(ref)

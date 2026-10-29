@@ -59,6 +59,20 @@ def ensure_product_slot(db: Session, org: Organization) -> None:
 
 def summary(db: Session, org: Organization) -> dict:
     plan = get_plan(org.plan)
+    if plan.audience == "individual":
+        from app.platform.routes.research import daily_usage
+
+        used, frees_at = daily_usage(db, org.id)
+        return {
+            "plan": plan.id,
+            "audience": "individual",
+            "research_today": {
+                "used": used,
+                "limit": plan.research_per_day,
+                "next_free_at": frees_at.isoformat() if frees_at else None,
+            },
+            "rate_limit": plan.rate_limit,
+        }
     products = db.scalar(
         select(func.count())
         .select_from(Product)
@@ -67,6 +81,7 @@ def summary(db: Session, org: Organization) -> dict:
     return {
         "period": current_period(),
         "plan": plan.id,
+        "audience": "business",
         "products": {"used": products, "limit": plan.max_products},
         "reviews_ingested": {
             "used": get_count(db, org.id, "reviews_ingested"),

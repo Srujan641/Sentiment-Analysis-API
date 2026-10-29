@@ -9,7 +9,7 @@ reviews -> clauses -> sentiment per clause (fine-tuned DistilBERT)
 
 import re
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
@@ -235,10 +235,22 @@ def analyse(
         },
         "lacking": [public(s, "negative") for s in lacking[: 5 if kind == "quick" else 15]],
         "strengths": [public(s, "positive") for s in strengths[: 3 if kind == "quick" else 8]],
+        "sources": [
+            {"source": src, "reviews": cnt} for src, cnt in Counter(r.source for r in reviews).most_common()
+        ],
     }
 
     if kind == "full":
         progress("checking trends and changes")
+        # Every aspect, for the complete PDF report: counts plus a couple of quotes each way.
+        report["aspects"] = [
+            {
+                **{k: v for k, v in s.items() if not k.startswith("_")},
+                "negative_quotes": quotes(s["_clauses"], "negative")[:2],
+                "positive_quotes": quotes(s["_clauses"], "positive")[:2],
+            }
+            for s in sorted(aspect_stats, key=lambda s: -s["mentions"])
+        ]
         by_aspect = {s["aspect"]: s for s in aspect_stats}
         dates = [r.reviewed_on for r in reviews]
 

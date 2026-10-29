@@ -4,14 +4,14 @@ import json
 from datetime import datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.platform import usage
 from app.platform.deps import Principal, get_business_polling_principal, get_business_principal, get_db
-from app.platform.models import Analysis
+from app.platform.models import Analysis, Product
 from app.platform.routes.products import owned_product
 
 router = APIRouter(tags=["analyses"])
@@ -144,3 +144,27 @@ def latest_insights(
     if a is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No completed analysis yet")
     return {"analysis_id": a.id, "product_id": a.product_id, **json.loads(a.report)}
+
+
+@router.get("/analyses/{analysis_id}/report.pdf", response_class=Response)
+def get_report_pdf(
+    analysis_id: str, p: Principal = Depends(get_business_principal), db: Session = Depends(get_db)
+):
+    """The complete report as a PDF: every aspect, issues with quotes, fix verification with
+    charts, early warnings, strengths, sources and methodology."""
+    from app.reports.pdf import render_report_pdf
+
+    a = _owned(db, p, analysis_id)
+    if a.status != "complete":
+        raise HTTPException(status.HTTP_409_CONFLICT, f"Analysis is {a.status}; poll /v1/analyses/{a.id}")
+    product = db.get(Product, a.product_id)
+    report = {"analysis_id": a.id, **json.loads(a.report)}
+    pdf = render_report_pdf(
+        report, {"name": product.name, "brand": product.brand, "category": product.category}, p.org.name
+    )
+    safe = "".join(ch if ch.isalnum() else "-" for ch in product.name).strip("-")[:60] or "report"
+    return Response(
+        pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{safe}-review-report.pdf"'},
+    )
