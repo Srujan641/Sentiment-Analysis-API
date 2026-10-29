@@ -25,6 +25,16 @@ BLOCKED_DOMAINS = {
 _robots_cache: dict[str, RobotFileParser | None] = {}
 
 
+# Handled by their own connectors through official APIs; reading them as web pages would
+# waste extraction credits and bypass those APIs.
+OWN_CONNECTOR_DOMAINS = {"youtube.com", "youtu.be", "apps.apple.com", "reddit.com"}
+
+
+def has_own_connector(url: str) -> bool:
+    host = (urlparse(url).hostname or "").lower()
+    return any(host == d or host.endswith("." + d) for d in OWN_CONNECTOR_DOMAINS)
+
+
 def blocked_reason(url: str) -> str | None:
     host = (urlparse(url).hostname or "").lower()
     labels = host.split(".")

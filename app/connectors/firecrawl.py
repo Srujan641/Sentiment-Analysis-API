@@ -9,7 +9,7 @@ import hashlib
 from datetime import date
 
 from app.connectors.base import Candidate, ConnectorError, RawReview
-from app.connectors.policy import check_url
+from app.connectors.policy import check_url, has_own_connector
 
 REVIEW_SCHEMA = {
     "type": "object",
@@ -68,7 +68,7 @@ class FirecrawlConnector:
         out = []
         for r in data.web or []:
             url = getattr(r, "url", None)
-            if not url:
+            if not url or has_own_connector(url):
                 continue
             allowed, reason = check_url(url)
             out.append(

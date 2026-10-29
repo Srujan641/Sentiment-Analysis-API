@@ -261,3 +261,97 @@ def test_collection_keeps_partial_reviews_over_quota(app_client, monkeypatch):
     c.post(f"/v1/products/{pid}/sources", json={"connector": "app_store", "ref": "in:42"})
     res = wait_run(c, c.post(f"/v1/products/{pid}/collect").json()["id"])["results"][0]
     assert res["added"] == 25 and res["skipped_over_quota"] == 15
+
+
+# ---------------------------------------------------------------- youtube
+def test_youtube_filters_comments_to_opinions():
+    from app.connectors.youtube import YouTubeConnector, is_opinion
+
+    terms = {"rockerz", "450"}
+    assert is_opinion("The battery easily lasts two full days for me", terms)
+    assert is_opinion("Rockerz 450 is comfortable enough to wear all day", terms)
+    assert not is_opinion("Buy at LOOT Price: https://kk.example/boat", terms)  # promotion
+    assert not is_opinion("Nice video bro", terms)  # too short
+    assert not is_opinion("Lekin ye tut jaldi jata hai bhai", terms)  # Hinglish, skipped for now
+    assert not is_opinion("Who is watching this in 2026 from Delhi", terms)  # not about the product
+    assert not is_opinion("I am confused between Rockerz 450 and 550 for gaming", terms)  # a question
+    assert not is_opinion("Is the battery good enough for long flights", terms)
+
+    def handler(req: httpx.Request):
+        if req.url.path.endswith("/search"):
+            return httpx.Response(
+                200,
+                json={
+                    "items": [
+                        {
+                            "id": {"videoId": "v1"},
+                            "snippet": {"title": "Rockerz 450 review &amp; test", "channelTitle": "Tech"},
+                        }
+                    ]
+                },
+            )
+        if req.url.path.endswith("/videos"):
+            return httpx.Response(200, json={"items": [{"id": "v1", "statistics": {"commentCount": "1200"}}]})
+        if req.url.path.endswith("/commentThreads"):
+            items = [
+                {
+                    "id": "c1",
+                    "snippet": {
+                        "topLevelComment": {
+                            "snippet": {
+                                "textOriginal": "Battery life is amazing, easily two days",
+                                "publishedAt": "2026-09-01T10:00:00Z",
+                            }
+                        }
+                    },
+                },
+                {
+                    "id": "c2",
+                    "snippet": {
+                        "topLevelComment": {
+                            "snippet": {"textOriginal": "First!!", "publishedAt": "2026-09-01T10:00:00Z"}
+                        }
+                    },
+                },
+            ]
+            return httpx.Response(200, json={"items": items})
+        return httpx.Response(404)
+
+    yt = YouTubeConnector("key", client=httpx.Client(transport=httpx.MockTransport(handler)))
+    (v,) = yt.discover("Rockerz 450")
+    assert v.label == "Rockerz 450 review & test" and "1,200 comments" in v.detail
+    (c,) = yt.collect("v1", "boAt Rockerz 450")
+    assert c.text.startswith("Battery life") and c.reviewed_on.isoformat() == "2026-09-01"
+    assert YouTubeConnector(None).available() is False
+
+
+def test_web_search_skips_sites_with_their_own_connector(monkeypatch):
+    monkeypatch.setattr(policy, "_robots", lambda origin, client=None: _allow_all())
+
+    class Fake:
+        def search(self, query, limit):
+            return SimpleNamespace(
+                web=[
+                    SimpleNamespace(url="https://www.youtube.com/watch?v=x", title="v", description=""),
+                    SimpleNamespace(url="https://blog.example/r", title="b", description=""),
+                ]
+            )
+
+    assert [c.url for c in FirecrawlConnector(None, client=Fake()).discover("x")] == [
+        "https://blog.example/r"
+    ]
+
+
+def test_code_mixed_comments_are_skipped_but_english_kept():
+    from app.connectors.youtube import classify_comment
+
+    terms = {"redmi", "note"}
+    assert (
+        classify_comment("Literally I dont recommend these headphones if you want durable headphones", terms)
+        == "opinion"
+    )
+    assert classify_comment("The ANC is decent but the earcups get sweaty in summer", terms) == "opinion"
+    assert (
+        classify_comment("Worst mobile ukey ukey charging automatic digipotunade rapido chestey", terms)
+        == "code_mixed"
+    )

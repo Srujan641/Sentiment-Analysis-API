@@ -68,8 +68,8 @@ cd web && npm install && npm run dev       # http://localhost:3000
 | Personal research: product link or name → reviews from permitted sources → summary, pros/cons, top-3 alternatives | ✅ (web needs `FIRECRAWL_API_KEY`) |
 | Business PDF report: every aspect, quotes, fix verification with charts, warnings, sources, method | ✅ |
 | PostgreSQL with Alembic migrations (`make migrate`) | ✅ |
-| Sources: Apple App Store (live), web via Firecrawl | ✅ |
-| YouTube and Reddit connectors, webhooks, email, scheduled refresh, payments | Next |
+| Sources: Apple App Store, web via Firecrawl, YouTube comments (all live) | ✅ |
+| Reddit connector (awaiting API access), Indian-language support, webhooks, email, payments | Next |
 
 **Measured** (`python -m scripts.simulate_stats`, 300 simulations each): fix verification detects a real 30% reduction
 80% of the time with 900 reviews, with a ~6% false-positive rate when nothing changed. A steady decline that was

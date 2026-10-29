@@ -62,6 +62,7 @@ class Settings(BaseSettings):
 
     # --- review sources ---
     firecrawl_api_key: str | None = None  # enables the web connector
+    youtube_api_key: str | None = None  # enables the YouTube comments connector
     store_country: str = "in"  # app-store country for search and reviews
 
     @field_validator("api_keys", "cors_origins", mode="before")

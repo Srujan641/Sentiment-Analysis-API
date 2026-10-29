@@ -64,8 +64,92 @@ class Identity:
     url: str | None = None
 
 
+# Colour names marketplaces put in slugs ("arctic-white", "midnight-black").
+_COLOUR_WORDS = {
+    "arctic",
+    "midnight",
+    "ocean",
+    "starry",
+    "mystic",
+    "cosmic",
+    "graphite",
+    "phantom",
+    "aurora",
+    "lavender",
+    "mint",
+    "olive",
+    "coral",
+    "titanium",
+    "space",
+    "jet",
+    "pebble",
+    "sky",
+    "forest",
+    "ice",
+    "frost",
+    "sea",
+    "glacier",
+    "sunset",
+    "electric",
+    "neon",
+    "rose",
+    "sapphire",
+    "emerald",
+    "onyx",
+    "pearl",
+    "chrome",
+}
+_COLOURS = {
+    "black",
+    "white",
+    "blue",
+    "red",
+    "green",
+    "grey",
+    "gray",
+    "silver",
+    "gold",
+    "pink",
+    "purple",
+    "yellow",
+}
+
+
+_CASING = {
+    "iphone": "iPhone",
+    "ipad": "iPad",
+    "imac": "iMac",
+    "macbook": "MacBook",
+    "airpods": "AirPods",
+    "oneplus": "OnePlus",
+    "iqoo": "iQOO",
+    "boat": "boAt",
+    "jbl": "JBL",
+    "realme": "realme",
+    "poco": "POCO",
+}
+
+
+def _display(words: list[str]) -> str:
+    """Slugs are lowercase; give display capitals ('redmi note 13 5g' -> 'Redmi Note 13 5G')."""
+    if any(any(c.isupper() for c in w) for w in words):
+        return " ".join(words)  # the slug already has meaningful case (e.g. "boAt")
+    out = []
+    for w in words:
+        if w.lower() in _CASING:
+            out.append(_CASING[w.lower()])
+            continue
+        out.append(w.upper() if re.fullmatch(r"\d+[a-z]{1,2}|[a-z]{1,3}\d+[a-z]*", w) else w.capitalize())
+    return " ".join(out)
+
+
 def _clean_slug(slug: str) -> str:
     words = [w for w in re.split(r"[-_+\s]+", unquote(slug)) if w]
+    # Drop "<colour modifier> <colour>" and storage sizes from the end of marketplace slugs.
+    for i, w in enumerate(words):
+        if i >= 2 and w.lower() in _COLOURS:
+            words = words[: i - 1] if i >= 3 and words[i - 1].lower() in _COLOUR_WORDS else words[:i]
+            break
     # Keep the brand/model words at the start; stop at the first run of descriptive noise.
     kept: list[str] = []
     for w in words:
@@ -74,7 +158,7 @@ def _clean_slug(slug: str) -> str:
         kept.append(w)
         if len(kept) == MAX_NAME_WORDS:
             break
-    name = " ".join(kept).strip()
+    name = _display(kept).strip()
     return name if re.search(r"[A-Za-z]", name) else ""
 
 

@@ -158,3 +158,9 @@ def test_full_report_verifies_fix(matcher):
 def test_empty_product(matcher):
     r = analyse([], KeywordClassifier(), HashEncoder(), matcher)
     assert r["review_count"] == 0 and r["lacking"] == []
+
+
+def test_quality_goes_to_the_right_aspect():
+    assert keyword_aspects("The camera quality is quite poor") == ["camera"]
+    assert keyword_aspects("sound quality is amazing") == ["sound quality"]
+    assert keyword_aspects("poor quality plastic") == ["build quality"]

@@ -23,7 +23,7 @@ PASSWORD = "correct-horse-battery"
         ),
         (
             "https://www.flipkart.com/apple-iphone-15-black-128-gb/p/itm6ac?pid=X",
-            "apple iphone 15",
+            "Apple iPhone 15",
             "flipkart_link",
         ),
         ("https://www.google.com/search?q=sony+wh-1000xm5+review", "sony wh-1000xm5", "google_link"),
@@ -73,7 +73,7 @@ class FakeWeb:
                     "web", "https://compare.example/best", "Best earbuds", url="https://compare.example/best"
                 )
             ]
-        return []
+        return self.discover(query)
 
     def discover(self, query, limit=8):
         return [
@@ -225,3 +225,35 @@ def test_research_is_private(setup):
     c.post("/v1/auth/logout")
     personal(c, "two@example.com")
     assert c.get(f"/v1/research/{rid}").status_code == 404
+
+
+def test_core_name_keeps_brand_and_model():
+    from app.research.pipeline import core_name
+
+    assert core_name("boAt Rockerz 450 Bluetooth Headphones") == "boAt Rockerz 450"
+    assert core_name("Noise ColorFit Pro 5") == "Noise ColorFit Pro 5"  # Noise is a brand
+    assert core_name("Sony WH-1000XM5 Wireless Headphones") == "Sony WH-1000XM5"
+
+
+def test_competitor_names_from_search_titles_and_links():
+    from app.research.pipeline import names_from_result
+
+    assert names_from_result(
+        "Boat Rockerz 450 vs Noise Two: What is the difference?",
+        "https://versus.com/en/boat-rockerz-450-vs-noise-two",
+    ) == ["Boat Rockerz 450", "Noise Two"]
+    assert names_from_result(
+        "What is the difference between boAt Rockerz 450 and Rockerz 550? - Quora", "https://www.quora.com/x"
+    ) == ["boAt Rockerz 450", "Rockerz 550"]
+    assert names_from_result("boAt Rockerz 450 Review: Bass heavy", "https://blog.example/r") == []
+
+
+def test_marketplace_names_drop_colours_and_get_display_case():
+    assert (
+        identify("https://www.flipkart.com/redmi-note-13-5g-arctic-white-128-gb/p/itm1").name
+        == "Redmi Note 13 5G"
+    )
+    assert (
+        identify("https://www.flipkart.com/samsung-galaxy-s24-ultra-titanium-gray-256-gb/p/itm9").name
+        == "Samsung Galaxy S24 Ultra"
+    )
