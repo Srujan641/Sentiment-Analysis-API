@@ -64,7 +64,12 @@ cd web && npm install && npm run dev       # http://localhost:3000
 | Analysis engine: clause sentiment (our DistilBERT), aspects, discovered specific issues, star-rating impact ranking | ✅ |
 | Fix verification (logistic regression, trend-aware, placebo check) and early warning (binomial test vs 8-week baseline) | ✅ |
 | Background analyses, quick/full reports API, Insights dashboard | ✅ |
-| Public connectors (App Store, Google Play, YouTube, Reddit), webhooks, PDF export, scheduled refresh | Next |
+| Two account types with separate logins: personal (research, 10/day free) and business (products, reports) | ✅ |
+| Personal research: product link or name → reviews from permitted sources → summary, pros/cons, top-3 alternatives | ✅ (web needs `FIRECRAWL_API_KEY`) |
+| Business PDF report: every aspect, quotes, fix verification with charts, warnings, sources, method | ✅ |
+| PostgreSQL with Alembic migrations (`make migrate`) | ✅ |
+| Sources: Apple App Store (live), web via Firecrawl | ✅ |
+| YouTube and Reddit connectors, webhooks, email, scheduled refresh, payments | Next |
 
 **Measured** (`python -m scripts.simulate_stats`, 300 simulations each): fix verification detects a real 30% reduction
 80% of the time with 900 reviews, with a ~6% false-positive rate when nothing changed. A steady decline that was

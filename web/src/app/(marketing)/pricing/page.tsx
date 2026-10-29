@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PLANS } from "@/lib/site";
+import { PERSONAL_PLANS, PLANS } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Pricing" };
 
@@ -13,7 +13,30 @@ export default function PricingPage() {
         <p className="mt-4 text-lg text-fg-2">Simple monthly plans in rupees. Prices exclude GST.</p>
       </div>
 
-      <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <h2 className="mt-14 text-lg font-semibold">For shoppers</h2>
+      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {PERSONAL_PLANS.map((p) => (
+          <div key={p.id} className="card flex flex-col p-6">
+            <h3 className="font-semibold">{p.name}</h3>
+            <div className="mt-4 flex items-baseline gap-1.5">
+              <span className="text-[34px] font-semibold tracking-tight tabular-nums">{p.price}</span>
+              <span className="text-sm text-muted">{p.period}</span>
+            </div>
+            <p className="mt-2 text-sm text-fg-2">{p.blurb}</p>
+            <Link href="/signup" className="btn btn-secondary mt-5">
+              {p.cta}
+            </Link>
+            <ul className="mt-6 space-y-2.5 text-sm text-fg-2">
+              {p.features.map((f) => (
+                <li key={f}>✓ {f}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <h2 className="mt-14 text-lg font-semibold">For brands</h2>
+      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {PLANS.map((p) => (
           <div key={p.id} className={`card flex flex-col p-6 ${p.highlight ? "border-fg ring-1 ring-fg" : ""}`}>
             <div className="flex items-center justify-between">
@@ -30,7 +53,7 @@ export default function PricingPage() {
             </div>
             <p className="mt-2 min-h-[48px] text-sm text-fg-2">{p.blurb}</p>
             <Link
-              href={p.id === "enterprise" ? "mailto:hello@example.com" : `/signup?plan=${p.id}`}
+              href={p.id === "enterprise" ? "mailto:hello@example.com" : "/business/signup"}
               className={`btn mt-5 ${p.highlight ? "btn-primary" : "btn-secondary"}`}
             >
               {p.cta}

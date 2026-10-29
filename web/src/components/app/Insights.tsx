@@ -90,6 +90,11 @@ export function Insights({ productId, reviewCount }: { productId: string; review
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {report && (
+            <a className="btn btn-secondary" href={`/v1/analyses/${report.analysis_id}/report.pdf`}>
+              Download PDF report
+            </a>
+          )}
           <button className="btn btn-secondary" disabled={busy || reviewCount === 0} onClick={() => start("quick")}>
             Run quick analysis
           </button>

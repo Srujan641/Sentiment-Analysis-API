@@ -17,6 +17,27 @@ export type PlanCard = {
   highlight?: boolean;
 };
 
+export const PERSONAL_PLANS: PlanCard[] = [
+  {
+    id: "personal_free",
+    name: "Personal",
+    price: "₹0",
+    period: "forever",
+    blurb: "Research products before you buy.",
+    features: ["10 product researches a day", "Summary, pros and cons", "Top 3 alternatives", "Research history"],
+    cta: "Start free",
+  },
+  {
+    id: "personal_plus",
+    name: "Personal Plus",
+    price: "₹299",
+    period: "per month",
+    blurb: "For people who compare a lot.",
+    features: ["100 researches a day", "Everything in Personal", "Priority processing"],
+    cta: "Get Plus",
+  },
+];
+
 export const PLANS: PlanCard[] = [
   {
     id: "free",

@@ -11,7 +11,7 @@ export default function SettingsPage() {
 
   async function logout() {
     await api("/v1/auth/logout", { method: "POST" }).catch(() => undefined);
-    router.replace("/login");
+    router.replace("/business/login");
   }
 
   const rows: [string, React.ReactNode][] = [

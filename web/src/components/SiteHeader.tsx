@@ -21,6 +21,9 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-2">
+          <Link href="/business/login" className="btn btn-sm hidden text-fg-2 hover:text-fg sm:inline-flex">
+            For business
+          </Link>
           <Link href="/login" className="btn btn-sm text-fg-2 hover:text-fg">
             Log in
           </Link>

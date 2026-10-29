@@ -206,3 +206,42 @@ export type CollectionRun = {
   error: string | null;
   status_url: string;
 };
+
+// ---- personal research (app/platform/routes/research.py) ----
+export type ResearchQuote = { text: string; rating: number | null; date: string | null; source: string };
+export type ResearchResult = {
+  product: { name: string; identified_from: string; query: string; url: string | null };
+  verdict: {
+    review_count: number;
+    confidence: "high" | "medium" | "low" | "insufficient";
+    positive_share: number | null;
+    sentiment_score: number | null;
+    average_rating: number | null;
+  };
+  lacking: { aspect: string; negative: number; negative_share: number; rating_impact: number | null; quotes: ResearchQuote[]; specific_issues?: { name: string; mentions: number }[] }[];
+  strengths: { aspect: string; positive: number; quotes: ResearchQuote[] }[];
+  summary: string[];
+  competitors: { name: string; why: string | null; pros: string[]; cons: string[]; price: string | null; mentions: number; sources: string[] }[];
+  sources: { label: string; url: string | null; kind: string; reviews: number }[];
+  notes: string[];
+  generated_at: string;
+};
+export type ResearchItem = {
+  id: string;
+  query: string;
+  product_name: string | null;
+  identified_from: string | null;
+  status: "queued" | "running" | "complete" | "failed";
+  stage: string | null;
+  error: string | null;
+  created_at: string;
+  finished_at: string | null;
+  result: ResearchResult | null;
+  status_url: string;
+};
+export type PersonalUsage = {
+  plan: string;
+  audience: "individual";
+  research_today: { used: number; limit: number | null; next_free_at: string | null };
+  rate_limit: string;
+};

@@ -30,9 +30,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      setMe(await api<Me>("/v1/auth/me"));
+      const m = await api<Me>("/v1/auth/me");
+      // The business dashboard is for business accounts; personal accounts have their own.
+      if (m.organization.account_type !== "organization") return router.replace("/me");
+      setMe(m);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) router.replace("/login");
+      if (err instanceof ApiError && err.status === 401) router.replace("/business/login");
     }
   }, [router]);
 
@@ -44,7 +47,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   async function logout() {
     await api("/v1/auth/logout", { method: "POST" }).catch(() => undefined);
-    router.replace("/login");
+    router.replace("/business/login");
   }
 
   if (!me) {
