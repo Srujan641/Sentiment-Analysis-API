@@ -1,4 +1,4 @@
-.PHONY: install install-train model run test lint format docker-build docker-run stack load-test drift train sweep
+.PHONY: install install-train model migrate run test lint format docker-build docker-run stack load-test drift train sweep
 
 PY ?= python
 
@@ -11,6 +11,9 @@ install-train:      ## training, sweep and drift-report dependencies
 
 model:              ## download the quick-start checkpoint into models/distilbert-sentiment
 	$(PY) -m scripts.download_model
+
+migrate:            ## apply database migrations (Postgres)
+	alembic upgrade head
 
 run:                ## dev server with reload
 	uvicorn app.main:app --reload --port 8000

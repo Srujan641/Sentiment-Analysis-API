@@ -48,8 +48,9 @@ def reference_file(tmp_path):
 
 
 @pytest.fixture
-def settings(reference_file):
+def settings(reference_file, tmp_path):
     return Settings(
+        database_url=f"sqlite:///{tmp_path}/platform.db",
         api_keys=["test-key"],
         rate_limit_anonymous="1000/minute",
         rate_limit_authenticated="5000/minute",
@@ -72,7 +73,9 @@ def make_client(settings, backend):
         batch_size=settings.inference_batch_size,
         uncertainty_threshold=settings.uncertainty_threshold,
     )
-    app = create_app(settings, inference=inference)
+    from tests.test_analysis import HashEncoder  # tiny deterministic encoder instead of the real model
+
+    app = create_app(settings, inference=inference, encoder_factory=HashEncoder)
     return TestClient(app)
 
 

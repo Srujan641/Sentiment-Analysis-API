@@ -43,6 +43,61 @@ is in [`docs/metrics.json`](docs/metrics.json).
 
 ---
 
+## ReviewPulse platform (branch `platform`)
+
+The sentiment API is growing into **ReviewPulse**, a self-serve review-intelligence platform for brands.
+Requirements: [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md).
+
+```bash
+# backend: FastAPI with the /v1 platform API (SQLite by default; DATABASE_URL for Postgres)
+make run                                   # http://localhost:8000
+
+# website: Next.js marketing site + dashboard, proxies /v1 to the backend
+cd web && npm install && npm run dev       # http://localhost:3000
+```
+
+| Area | Status |
+|---|---|
+| Accounts, organizations, sessions, self-serve API keys (hashed), plans, quotas, per-plan rate limits | ✅ |
+| Products, logged product changes, review push + CSV/JSON upload with de-duplication and personal-data removal | ✅ |
+| Website: home, pricing, docs, signup/login, dashboard, products, reviews, changes, API keys, settings | ✅ |
+| Analysis engine: clause sentiment (our DistilBERT), aspects, discovered specific issues, star-rating impact ranking | ✅ |
+| Fix verification (logistic regression, trend-aware, placebo check) and early warning (binomial test vs 8-week baseline) | ✅ |
+| Background analyses, quick/full reports API, Insights dashboard | ✅ |
+| Two account types with separate logins: personal (research, 10/day free) and business (products, reports) | ✅ |
+| Personal research: product link or name → reviews from permitted sources → summary, pros/cons, top-3 alternatives | ✅ (web needs `FIRECRAWL_API_KEY`) |
+| Business PDF report: every aspect, quotes, fix verification with charts, warnings, sources, method | ✅ |
+| PostgreSQL with Alembic migrations (`make migrate`) | ✅ |
+| Sources: Apple App Store, web via Firecrawl, YouTube comments (all live) | ✅ |
+| Reddit connector (awaiting API access), Indian-language support, webhooks, email, payments | Next |
+
+**Measured** (`python -m scripts.simulate_stats`, 300 simulations each): fix verification detects a real 30% reduction
+80% of the time with 900 reviews, with a ~6% false-positive rate when nothing changed. A steady decline that was
+already underway can still be credited to a change (~21%), so every verdict is shown next to its weekly chart.
+Early warning catches a 3× jump in complaints 83% of the time about one week in, with false alarms in ~7% of stable
+histories.
+
+**Try it with real data:** `python -m scripts.seed_demo` loads two Amazon Reviews 2023 products into
+`demo@example.com` / `demo-password-123`.
+
+### Screenshots
+
+The screenshots below show the demo account after running `seed_demo`.
+
+**Product insights:** what to fix first, ranked by estimated star-rating cost, with the specific issues and supporting quotes
+
+![Product insights](docs/screenshots/insights.png)
+
+| Dashboard | Products |
+|---|---|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Products](docs/screenshots/products.png) |
+
+| Pricing | Business login |
+|---|---|
+| ![Pricing](docs/screenshots/pricing.png) | ![Business login](docs/screenshots/login.png) |
+
+---
+
 ## Quick start
 
 ```bash
@@ -300,10 +355,18 @@ app/                    FastAPI application
 ├── api/v1/routes/      endpoint handlers (predict, jobs, monitoring)
 ├── core/               config, model loader, middleware, logging
 ├── schemas/            pydantic request / response models
-└── services/           inference, background jobs, drift detection, metrics
+├── services/           inference, background jobs, drift detection, metrics
+├── platform/           ReviewPulse /v1 API: auth, orgs, plans, keys, products, reviews, analyses, research
+├── analysis/           clause sentiment, aspects, issue discovery, impact ranking, fix verification
+├── connectors/         review sources (App Store, Firecrawl web, YouTube)
+├── research/           personal product research pipeline
+└── reports/            business PDF reports
+web/                    Next.js website + dashboard (proxies /v1 to the backend)
+migrations/             Alembic migrations (PostgreSQL)
 tests/                  pytest suite (stub model, no weights needed)
 docker/                 Dockerfile + compose (API, Prometheus, Grafana)
-scripts/                train, sweep, download_model, load_test, drift_report
+docs/                   requirements, training metrics, screenshots
+scripts/                train, sweep, download_model, load_test, drift_report, seed_demo, simulate_stats
 notebooks/              Colab training notebook
 monitoring/             Prometheus config + alerts, Grafana provisioning + dashboard
 sweeps/                 W&B sweep config
@@ -314,7 +377,9 @@ sweeps/                 W&B sweep config
 
 - **Sarcasm** is still hard: surface sentiment and intent are opposite. It tends to show up as
   low-confidence predictions, so callers can use `return_probabilities` to route those to human review.
-- **Binary only.** The next step is aspect-based sentiment (positive on delivery, negative on build quality).
+- **Binary classifier.** The model itself is positive/negative. Aspect-level results (positive on delivery,
+  negative on build quality) come from the clause-splitting and aspect layer in `app/analysis/`, not from a
+  dedicated aspect model.
 - **Retraining is manual.** The drift report gives the signal (exit code 2). Wiring it to a training run is
   the next step, followed by shadow deployment of new checkpoints against the incumbent.
 - **Job storage is in-memory.** Move it to Redis for multi-replica deployments.

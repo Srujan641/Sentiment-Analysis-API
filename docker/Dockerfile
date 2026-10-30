@@ -18,6 +18,8 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY app ./app
+COPY migrations ./migrations
+COPY alembic.ini ./
 
 # Weights are mounted read-only at /app/models (or MODEL_NAME_OR_PATH points at the Hub),
 # so a new model can be swapped in without rebuilding the image.
@@ -32,4 +34,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
 
 # One worker: the model is held in memory once and batch jobs live in this process.
 # Scale horizontally with replicas (and a Redis RATE_LIMIT_STORAGE_URI) instead.
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]
+# Apply database migrations (no-op for SQLite), then serve.
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]
