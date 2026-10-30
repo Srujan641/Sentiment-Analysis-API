@@ -80,6 +80,22 @@ histories.
 **Try it with real data:** `python -m scripts.seed_demo` loads two Amazon Reviews 2023 products into
 `demo@example.com` / `demo-password-123`.
 
+### Screenshots
+
+The screenshots below show the demo account after running `seed_demo`.
+
+**Product insights:** what to fix first, ranked by estimated star-rating cost, with the specific issues and supporting quotes
+
+![Product insights](docs/screenshots/insights.png)
+
+| Dashboard | Products |
+|---|---|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Products](docs/screenshots/products.png) |
+
+| Pricing | Business login |
+|---|---|
+| ![Pricing](docs/screenshots/pricing.png) | ![Business login](docs/screenshots/login.png) |
+
 ---
 
 ## Quick start
@@ -339,10 +355,18 @@ app/                    FastAPI application
 ├── api/v1/routes/      endpoint handlers (predict, jobs, monitoring)
 ├── core/               config, model loader, middleware, logging
 ├── schemas/            pydantic request / response models
-└── services/           inference, background jobs, drift detection, metrics
+├── services/           inference, background jobs, drift detection, metrics
+├── platform/           ReviewPulse /v1 API: auth, orgs, plans, keys, products, reviews, analyses, research
+├── analysis/           clause sentiment, aspects, issue discovery, impact ranking, fix verification
+├── connectors/         review sources (App Store, Firecrawl web, YouTube)
+├── research/           personal product research pipeline
+└── reports/            business PDF reports
+web/                    Next.js website + dashboard (proxies /v1 to the backend)
+migrations/             Alembic migrations (PostgreSQL)
 tests/                  pytest suite (stub model, no weights needed)
 docker/                 Dockerfile + compose (API, Prometheus, Grafana)
-scripts/                train, sweep, download_model, load_test, drift_report
+docs/                   requirements, training metrics, screenshots
+scripts/                train, sweep, download_model, load_test, drift_report, seed_demo, simulate_stats
 notebooks/              Colab training notebook
 monitoring/             Prometheus config + alerts, Grafana provisioning + dashboard
 sweeps/                 W&B sweep config
@@ -353,7 +377,9 @@ sweeps/                 W&B sweep config
 
 - **Sarcasm** is still hard: surface sentiment and intent are opposite. It tends to show up as
   low-confidence predictions, so callers can use `return_probabilities` to route those to human review.
-- **Binary only.** The next step is aspect-based sentiment (positive on delivery, negative on build quality).
+- **Binary classifier.** The model itself is positive/negative. Aspect-level results (positive on delivery,
+  negative on build quality) come from the clause-splitting and aspect layer in `app/analysis/`, not from a
+  dedicated aspect model.
 - **Retraining is manual.** The drift report gives the signal (exit code 2). Wiring it to a training run is
   the next step, followed by shadow deployment of new checkpoints against the incumbent.
 - **Job storage is in-memory.** Move it to Redis for multi-replica deployments.
